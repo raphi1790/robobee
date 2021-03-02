@@ -25,7 +25,7 @@ def collect_websocket_data(websocket, aggregation_level=30):
     websocket_request_data =  {
         "event": "bts:subscribe",
         "data": {
-            "channel": "live_trades_btcusd"
+            "channel": "live_trades_etheur"
         }
     }
     websocket_request_data_json = json.dumps(websocket_request_data)
@@ -62,9 +62,9 @@ def collect_websocket_data(websocket, aggregation_level=30):
             last_buffer_element = buffer[len(buffer) -1]
             start_point = [
                     {
-                        "measurement": "bitcoin_price",
+                        "measurement": "ethereum_price",
                         "tags": {
-                            "currency": "USD",
+                            "currency": "EUR",
                             "exchange": "Bitstamp"
                         
                         },
@@ -76,9 +76,9 @@ def collect_websocket_data(websocket, aggregation_level=30):
             ]
             end_point =  [
                     {
-                        "measurement": "bitcoin_price",
+                        "measurement": "ethereum_price",
                         "tags": {
-                            "currency": "USD",
+                            "currency": "EUR",
                             "exchange": "Bitstamp"
                         
                         },
@@ -95,9 +95,9 @@ def collect_websocket_data(websocket, aggregation_level=30):
             first_buffer_element = buffer[0]
             start_point = [
                     {
-                        "measurement": "bitcoin_price",
+                        "measurement": "ethereum_price",
                         "tags": {
-                            "currency": "USD",
+                            "currency": "EUR",
                             "exchange": "Bitstamp"
                         
                         },
