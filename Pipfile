@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 websocket-client = "*"
 influxdb = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
