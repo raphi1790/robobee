@@ -7,8 +7,6 @@ import sys
 from dotenv import load_dotenv, find_dotenv
 import os
 
-
-# if __name__ == "__main__":
 load_dotenv()
 
 client_id = os.environ.get('CLIENT_ID')
