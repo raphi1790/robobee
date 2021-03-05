@@ -82,7 +82,7 @@ def get_current_eth_eur_value():
     client = InfluxDBClient('localhost', 8086, user, password, 'pi_influxdb')
     print("DB-connection established:", client)
 
-    result_set = client.query('SELECT value FROM ethereum_price WHERE time > now() - 2d limit 1')
+    result_set = client.query('SELECT value FROM ethereum_price WHERE time > now() - 2m order by time desc limit 1')
     if len(result_set) > 0:
         result_points = list(result_set.get_points("ethereum_price"))
         return result_points[0]['value']
