@@ -16,9 +16,9 @@ def _get_api_keys():
     api_key = os.environ.get('API_KEY')
     api_secret = str.encode(os.environ.get('API_SECRET'))
 
-    print("client_id", client_id)
-    print("api_key", api_key)
-    print("api_secret",api_secret )
+    # print("client_id", client_id)
+    # print("api_key", api_key)
+    # print("api_secret",api_secret )
     return client_id, api_key, api_secret
 
 
@@ -72,7 +72,7 @@ def get_balance():
     
     content = r.content.decode("utf-8") 
     content_dict = ast.literal_eval(content)
-    if content_dict:
+    if bool(content_dict):
         return content_dict["eur_available"], content_dict['eth_available']
 
 def get_current_eth_eur_value():
@@ -82,8 +82,12 @@ def get_current_eth_eur_value():
     client = InfluxDBClient('localhost', 8086, user, password, 'pi_influxdb')
     print("DB-connection established:", client)
 
-    result = client.query('SELECT value FROM bitcoin_price WHERE time > now() - 4d limit 1')
-    return result
+    result_set = client.query('SELECT value FROM ethereum_price WHERE time > now() - 2d limit 1')
+    if len(result_set) > 0:
+        result_points = list(result_set.get_points("ethereum_price"))
+        return result_points[0]['value']
+
+
 
 
 
