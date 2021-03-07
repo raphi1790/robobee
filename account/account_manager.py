@@ -48,8 +48,6 @@ def update_account_balance(offset=60):
                 ]
             # print("point", point)
 
-
-    
             client.write_points(point)
         time.sleep(offset)
 
