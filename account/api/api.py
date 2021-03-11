@@ -50,7 +50,7 @@ def _get_payload_string(mode, order_id, amount, price):
         payload = {'offset': '1',
                 'id': str(order_id)} # "1336540724711425"
 
-    if mode== 'buy_order':
+    if mode== 'buy_sell_order':
         payload = {'offset': '1',
                 'amount': amount,
                 'price': price
@@ -104,6 +104,7 @@ def get_balance():
     
     content = r.content.decode("utf-8") 
     content_dict = ast.literal_eval(content)
+    print("content", content)
     if bool(content_dict):
         return content_dict["eur_available"], content_dict['eth_available']
 
@@ -113,7 +114,7 @@ def get_current_eth_eur_value():
     user=os.getenv("INFLUX_DB_USER")
     password=os.getenv("INFLUX_DB_PASSWORD")
     client = InfluxDBClient('localhost', 8086, user, password, 'pi_influxdb')
-    print("DB-connection established:", client)
+    #print("DB-connection established:", client)
 
     result_set = client.query('SELECT value FROM ethereum_price WHERE time > now() - 2m order by time desc limit 1')
     if len(result_set) > 0:
@@ -196,7 +197,7 @@ def check_order_status(order_id):
 def buy_limit_order(amount, price):
     client_id, api_key, api_secret = _get_api_keys()
     nonce, timestamp, content_type = _get_nonce_timestamp_content_type()
-    payload_string = _get_payload_string('buy_order',amount=amount, price=price, order_id=None)
+    payload_string = _get_payload_string('buy_sell_order',amount=amount, price=price, order_id=None)
 
     message = 'BITSTAMP ' + api_key + \
         'POST' + \
@@ -227,6 +228,43 @@ def buy_limit_order(amount, price):
     content = r.content.decode("utf-8") 
     content_dict = ast.literal_eval(content)
     print("content", content)
+
+
+def sell_limit_order(amount, price):
+    client_id, api_key, api_secret = _get_api_keys()
+    nonce, timestamp, content_type = _get_nonce_timestamp_content_type()
+    payload_string = _get_payload_string('buy_sell_order',amount=amount, price=price, order_id=None)
+
+    message = 'BITSTAMP ' + api_key + \
+        'POST' + \
+        'www.bitstamp.net' + \
+        '/api/v2/sell/etheur/' + \
+        '' + \
+        content_type + \
+        nonce + \
+        timestamp + \
+        'v2' + \
+        payload_string
+    message = message.encode('utf-8')
+    signature = _generate_signature(message, api_secret)
+    headers = _generate_headers(message, signature, nonce, timestamp,content_type, api_key)
+
+    r = requests.post(
+     'https://www.bitstamp.net/api/v2/sell/etheur/',
+    headers=headers,
+    data=payload_string
+    )
+    if not r.status_code == 200:
+        raise Exception('Status code not 200')
+
+    signature_check = _get_signature_check(nonce, timestamp, r.headers, r.content, api_secret)
+    if not r.headers.get('X-Server-Auth-Signature') == signature_check:
+        raise Exception('Signatures do not match')
+    
+    content = r.content.decode("utf-8") 
+    content_dict = ast.literal_eval(content)
+    print("content", content)
+
 
 
 
