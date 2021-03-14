@@ -71,6 +71,13 @@ def _get_signature_check(nonce, timestamp, response_header, response_content, ap
     return signature_check
 
 
+def _prepare_response(content):
+    decoded_content = content.decode("utf-8") 
+    content_dict = ast.literal_eval(decoded_content)
+    return content_dict
+
+
+
 def get_balance():
     client_id, api_key, api_secret = _get_api_keys()
     nonce, timestamp, content_type = _get_nonce_timestamp_content_type()
@@ -189,12 +196,48 @@ def check_order_status(order_id):
     if not r.headers.get('X-Server-Auth-Signature') == signature_check:
         raise Exception('Signatures do not match')
     
-    content = r.content.decode("utf-8") 
-    content_dict = ast.literal_eval(content)
-    print("content", content)
+    
+    return _prepare_response(r.content)
  
 
+def cancel_order(order_id):
+    client_id, api_key, api_secret = _get_api_keys()
+    nonce, timestamp, content_type = _get_nonce_timestamp_content_type()
+    payload_string = _get_payload_string('check_order', order_id=order_id, amount=None, price=None )
+
+    message = 'BITSTAMP ' + api_key + \
+        'POST' + \
+        'www.bitstamp.net' + \
+        '/api/v2/cancel_order/' + \
+        '' + \
+        content_type + \
+        nonce + \
+        timestamp + \
+        'v2' + \
+        payload_string
+    message = message.encode('utf-8')
+    signature = _generate_signature(message, api_secret)
+    headers = _generate_headers(message, signature, nonce, timestamp,content_type, api_key)
+
+    r = requests.post(
+    'https://www.bitstamp.net/api/v2/cancel_order/',
+    headers=headers,
+    data=payload_string
+    )
+    if not r.status_code == 200:
+        raise Exception('Status code not 200')
+
+    signature_check = _get_signature_check(nonce, timestamp, r.headers, r.content, api_secret)
+    if not r.headers.get('X-Server-Auth-Signature') == signature_check:
+        raise Exception('Signatures do not match')
+    
+    
+    return _prepare_response(r.content)
+
+
 def buy_limit_order(amount, price):
+    if not (isinstance(price, int) or isinstance(price, float)):
+        raise Exception('price is not a number') 
     client_id, api_key, api_secret = _get_api_keys()
     nonce, timestamp, content_type = _get_nonce_timestamp_content_type()
     payload_string = _get_payload_string('buy_sell_order',amount=amount, price=price, order_id=None)
@@ -218,6 +261,7 @@ def buy_limit_order(amount, price):
     headers=headers,
     data=payload_string
     )
+    print("payload_string", payload_string)
     if not r.status_code == 200:
         raise Exception('Status code not 200')
 
@@ -225,9 +269,36 @@ def buy_limit_order(amount, price):
     if not r.headers.get('X-Server-Auth-Signature') == signature_check:
         raise Exception('Signatures do not match')
     
-    content = r.content.decode("utf-8") 
-    content_dict = ast.literal_eval(content)
-    print("content", content)
+
+    return _prepare_response(r.content)
+ 
+
+def buy_eth(amount):
+    order_incomplete = True
+    for idx in range(3):
+        try:
+            # current_etheur_value = get_current_eth_eur_value()
+            current_etheur_value = 1552
+            bidding_value = round(current_etheur_value + (1/1000 * current_etheur_value),2)
+            print("bidding_value", bidding_value)
+            limit_content = buy_limit_order(amount, bidding_value)
+            order_id = limit_content['id']
+            print("limit_content", limit_content)
+            print("order_id", order_id)
+            time.sleep(10)
+            status_content = check_order_status(str(order_id))
+            print("status_content", status_content['status'])
+            if status_content['status'] == 'Open':
+                cancel_content = cancel_order(str(order_id))
+                print("cancel_content",cancel_content)
+            else:
+                return limit_content
+        except ValueError:
+            print("Oops!  Something went wrong with buying ETH")
+        
+   
+       
+       
 
 
 def sell_limit_order(amount, price):
