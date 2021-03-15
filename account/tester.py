@@ -10,5 +10,5 @@ if __name__ == "__main__":
     #get_open_orders()
     # content = check_order_status("1338019410989057")
     # print(content['status'])
-    buy_eth(0.03)
+    sell_eth(0.03)
     # eur, eth = get_balance()

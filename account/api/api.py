@@ -113,7 +113,7 @@ def get_balance():
     content_dict = ast.literal_eval(content)
     print("content", content)
     if bool(content_dict):
-        return content_dict["eur_available"], content_dict['eth_available']
+        return float(content_dict["eur_available"]),float(content_dict['eth_available'])
 
 
 def get_current_eth_eur_value():
@@ -126,7 +126,9 @@ def get_current_eth_eur_value():
     result_set = client.query('SELECT value FROM ethereum_price WHERE time > now() - 2m order by time desc limit 1')
     if len(result_set) > 0:
         result_points = list(result_set.get_points("ethereum_price"))
-        return result_points[0]['value']
+        return float(result_points[0]['value'])
+    else:
+        return None
 
 
 def get_open_orders():
@@ -273,13 +275,16 @@ def buy_limit_order(amount, price):
     return _prepare_response(r.content)
  
 
+
+
 def buy_eth(amount):
-    order_incomplete = True
+    if amount <= 0 or amount is None:
+        return 
+
     for idx in range(3):
         try:
-            # current_etheur_value = get_current_eth_eur_value()
-            current_etheur_value = 1552
-            bidding_value = round(current_etheur_value + (1/1000 * current_etheur_value),2)
+            current_etheur_value = get_current_eth_eur_value()
+            bidding_value = round(current_etheur_value + (1/3000 * current_etheur_value),2)
             print("bidding_value", bidding_value)
             limit_content = buy_limit_order(amount, bidding_value)
             order_id = limit_content['id']
@@ -299,8 +304,6 @@ def buy_eth(amount):
    
        
        
-
-
 def sell_limit_order(amount, price):
     client_id, api_key, api_secret = _get_api_keys()
     nonce, timestamp, content_type = _get_nonce_timestamp_content_type()
@@ -332,11 +335,33 @@ def sell_limit_order(amount, price):
     if not r.headers.get('X-Server-Auth-Signature') == signature_check:
         raise Exception('Signatures do not match')
     
-    content = r.content.decode("utf-8") 
-    content_dict = ast.literal_eval(content)
-    print("content", content)
+    return _prepare_response(r.content)
 
 
+def sell_eth(amount):
+    if amount <= 0 or amount is None:
+        return 
+    for idx in range(3):
+        try:
+            current_etheur_value = get_current_eth_eur_value()
+            bidding_value = round(current_etheur_value - (1/3000 * current_etheur_value),2)
+            print("bidding_value", bidding_value)
+            limit_content = sell_limit_order(amount, bidding_value)
+            print("limit_content", limit_content)
+            order_id = limit_content['id']
+            print("limit_content", limit_content)
+            print("order_id", order_id)
+            time.sleep(10)
+            status_content = check_order_status(str(order_id))
+            print("status_content", status_content['status'])
+            if status_content['status'] == 'Open':
+                cancel_content = cancel_order(str(order_id))
+                print("cancel_content",cancel_content)
+                current_etheur_value = bidding_value
+            else:
+                return limit_content
+        except ValueError:
+            print("Oops!  Something went wrong with buying ETH")
 
 
 
