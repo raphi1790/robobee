@@ -13,6 +13,8 @@ def start_websocket_connection():
     print("websocket-connection established.")
     return ws
 
+
+
 def collect_websocket_data(websocket, aggregation_level=30):
     # open connection
     load_dotenv()
@@ -34,16 +36,18 @@ def collect_websocket_data(websocket, aggregation_level=30):
 
 
     print("aggregation-level [s]:", aggregation_level)
-    print("start collecting data:")
+    print("start collecting data...")
     while True:
         start_time = datetime.now(tz=pytz.utc)
         current_time = start_time
         interval = aggregation_level # aggregate all transactions within the time-interval into one point
         buffer = []
         while current_time < start_time + timedelta(seconds=interval):
-            try:
-                result = websocket.recv()
+            result = websocket.recv()
+            if not websocket.connected:
+                print("websocket.readyState", websocket.connected )
                 obj = json.loads(result)
+                print("obj", obj)
 
                 if bool(obj['data']) :
                     price = obj['data']['price']
@@ -53,9 +57,9 @@ def collect_websocket_data(websocket, aggregation_level=30):
 
                     
                 current_time = datetime.now(tz=pytz.utc)
-            except Exception as e:
-                print(e)
-                break
+            else:
+                print("reconnect")
+                websocket = start_websocket_connection()
         
         if len(buffer) >= 2:
             first_buffer_element = buffer[0]

@@ -9,6 +9,7 @@ import os
 import ast
 from influxdb import InfluxDBClient
 from urllib.parse import urlencode
+from datetime import datetime
 
 
 def _get_api_keys():
@@ -127,6 +128,20 @@ def get_current_eth_eur_value():
     if len(result_set) > 0:
         result_points = list(result_set.get_points("ethereum_price"))
         return float(result_points[0]['value'])
+    else:
+        return None
+
+def get_eth_eur_values(interval_str='1d',to_dt_str='now()' ):
+    load_dotenv()
+    user=os.getenv("INFLUX_DB_USER")
+    password=os.getenv("INFLUX_DB_PASSWORD")
+    client = InfluxDBClient('localhost', 8086, user, password, 'pi_influxdb')
+    query_str = f"SELECT value FROM ethereum_price WHERE time > {to_dt_str} - {interval_str} order by time desc"
+    print("query_str", query_str)
+    result_set = client.query(query_str)
+    if len(result_set) > 0:
+        result_points = list(result_set.get_points("ethereum_price"))
+        return [float(result_points[idx]['value']) for idx in range(len(result_points))]
     else:
         return None
 
