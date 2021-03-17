@@ -295,11 +295,11 @@ def buy_limit_order(amount, price):
 def buy_eth(amount):
     if amount <= 0 or amount is None:
         return 
-
+    current_etheur_value = get_current_eth_eur_value()
     for idx in range(3):
         try:
             current_etheur_value = get_current_eth_eur_value()
-            bidding_value = round(current_etheur_value + (1/3000 * current_etheur_value),2)
+            bidding_value = round(current_etheur_value + idx * 0.3 ,2)
             print("bidding_value", bidding_value)
             limit_content = buy_limit_order(amount, bidding_value)
             order_id = limit_content['id']
@@ -356,10 +356,10 @@ def sell_limit_order(amount, price):
 def sell_eth(amount):
     if amount <= 0 or amount is None:
         return 
+    current_etheur_value = get_current_eth_eur_value()
     for idx in range(3):
         try:
-            current_etheur_value = get_current_eth_eur_value()
-            bidding_value = round(current_etheur_value - (1/3000 * current_etheur_value),2)
+            bidding_value = round(current_etheur_value - idx * 0.3 ,2)
             print("bidding_value", bidding_value)
             limit_content = sell_limit_order(amount, bidding_value)
             print("limit_content", limit_content)

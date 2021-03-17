@@ -43,8 +43,9 @@ def collect_websocket_data(websocket, aggregation_level=30):
         interval = aggregation_level # aggregate all transactions within the time-interval into one point
         buffer = []
         while current_time < start_time + timedelta(seconds=interval):
-            result = websocket.recv()
-            if not websocket.connected:
+            try: 
+                result = websocket.recv()
+                print("result", result)
                 print("websocket.readyState", websocket.connected )
                 obj = json.loads(result)
                 print("obj", obj)
@@ -57,9 +58,12 @@ def collect_websocket_data(websocket, aggregation_level=30):
 
                     
                 current_time = datetime.now(tz=pytz.utc)
-            else:
-                print("reconnect")
+            except Exception as e:
+                print(e)
+                print("reconnect...")
                 websocket = start_websocket_connection()
+                websocket.send(websocket_request_data_json) # start requesting websocket-data  
+                print("channel subscribed.")
         
         if len(buffer) >= 2:
             first_buffer_element = buffer[0]
