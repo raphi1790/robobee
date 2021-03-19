@@ -17,7 +17,7 @@ def _calculate_eth(input_budget):
         return 0
 
 def _is_buyable(current_eth_value):
-    PAST_THRESHOLD = -0.02
+    PAST_THRESHOLD = 0.02
     if not (isinstance(current_eth_value, int) or isinstance(current_eth_value, float)):
         return False
     print("upper_threshold",(1+PAST_THRESHOLD)*current_eth_value)
@@ -40,10 +40,11 @@ def collect_honey():
     tradable_budget = eur_available-RESEVERE
     print("tradable_budget",tradable_budget)
     current_eth_value = get_current_eth_eur_value()
-    if tradable_budget > 0 and _is_buyable(current_eth_value):
+    if tradable_budget > 0 and eth_available == 0 and _is_buyable(current_eth_value):
         num_eth = _calculate_eth(tradable_budget)
         print("num_eth",num_eth)
         # response = buy_eth(num_eth)
+    if eth_available > 0:
 
 
         

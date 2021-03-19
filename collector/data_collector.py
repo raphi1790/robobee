@@ -45,10 +45,7 @@ def collect_websocket_data(websocket, aggregation_level=30):
         while current_time < start_time + timedelta(seconds=interval):
             try: 
                 result = websocket.recv()
-                print("result", result)
-                print("websocket.readyState", websocket.connected )
                 obj = json.loads(result)
-                print("obj", obj)
 
                 if bool(obj['data']) :
                     price = obj['data']['price']

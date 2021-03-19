@@ -78,6 +78,47 @@ def _prepare_response(content):
     return content_dict
 
 
+def _connect_influx_db():
+    load_dotenv()
+    user=os.getenv("INFLUX_DB_USER")
+    password=os.getenv("INFLUX_DB_PASSWORD")
+    client = InfluxDBClient('localhost', 8086, user, password, 'pi_influxdb')
+    return client 
+
+def write_transaction(type,id, timestamp, price, amount):
+    try:
+        client = _connet_influx_db()
+        point = [
+                            {
+                                "measurement": "transactions",
+                                "tags": {
+                                    "currency": "EUR",
+                                    "exchange": "Bitstamp",
+                                    "type": type,
+                                    "id": str(id)
+                                
+                                },
+                                "time": timestamp,
+                                "fields": {
+                                    "price": float(price),
+                                    "amount": floact(amount) 
+                                }
+                            }
+                    ]
+
+        client.write_points(point)
+    except Exception as e:
+        print(e)
+
+def _is_valid_limit_response(response):
+    try:
+        if bool(response['id']):
+            return True
+    except:
+        return False
+
+
+
 
 def get_balance():
     client_id, api_key, api_secret = _get_api_keys()
@@ -110,20 +151,14 @@ def get_balance():
     if not r.headers.get('X-Server-Auth-Signature') == signature_check:
         raise Exception('Signatures do not match')
     
-    content = r.content.decode("utf-8") 
-    content_dict = ast.literal_eval(content)
-    print("content", content)
+    content_dict = _prepare_response(r.content)
     if bool(content_dict):
         return float(content_dict["eur_available"]),float(content_dict['eth_available'])
 
 
 def get_current_eth_eur_value():
-    load_dotenv()
-    user=os.getenv("INFLUX_DB_USER")
-    password=os.getenv("INFLUX_DB_PASSWORD")
-    client = InfluxDBClient('localhost', 8086, user, password, 'pi_influxdb')
+    client = _connet_influx_db()
     #print("DB-connection established:", client)
-
     result_set = client.query('SELECT value FROM ethereum_price WHERE time > now() - 2m order by time desc limit 1')
     if len(result_set) > 0:
         result_points = list(result_set.get_points("ethereum_price"))
@@ -295,13 +330,17 @@ def buy_limit_order(amount, price):
 def buy_eth(amount):
     if amount <= 0 or amount is None:
         return 
-    current_etheur_value = get_current_eth_eur_value()
+    # current_etheur_value = get_current_eth_eur_value()
+    current_etheur_value= 1000
     for idx in range(3):
         try:
-            current_etheur_value = get_current_eth_eur_value()
             bidding_value = round(current_etheur_value + idx * 0.3 ,2)
             print("bidding_value", bidding_value)
             limit_content = buy_limit_order(amount, bidding_value)
+            print(limit_content)
+            if not _is_valid_limit_response(limit_content):
+                break
+            
             order_id = limit_content['id']
             print("limit_content", limit_content)
             print("order_id", order_id)
@@ -309,12 +348,29 @@ def buy_eth(amount):
             status_content = check_order_status(str(order_id))
             print("status_content", status_content['status'])
             if status_content['status'] == 'Open':
-                cancel_content = cancel_order(str(order_id))
-                print("cancel_content",cancel_content)
-            else:
+                if float(status_content['amount_remaining']) < amount:
+                    # a part of the order is fulfilled
+                    cancel_content = cancel_order(str(order_id))
+                    print("open, limit_content", limit_content)
+                    write_transaction('buy',limit_content['id'], limit_content['datetime'], 
+                            limit_content['price'],limit_content['amount'])
+                    return limit_content
+                else:
+                    cancel_content = cancel_order(str(order_id))
+                    print("cancel_content",cancel_content)
+            elif status_content['status'] == 'Finished':
+                print("finished, limit_content", limit_content)
+                if bool(limit_content['id']):
+                    print(limit_content)
+                    write_transaction('buy',limit_content['id'], limit_content['datetime'], 
+                            limit_content['price'],limit_content['amount'])
                 return limit_content
+            else:
+                cancel_content = cancel_order(str(order_id))
+
         except ValueError:
             print("Oops!  Something went wrong with buying ETH")
+    return None
         
    
        
