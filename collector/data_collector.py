@@ -1,5 +1,5 @@
 import json
-from websocket import create_connection
+import websocket
 from influxdb import InfluxDBClient
 from datetime import datetime, timedelta
 import pytz
@@ -7,21 +7,31 @@ import os
 from dotenv import load_dotenv
 
 
-def start_websocket_connection():
+
+
+def _start_websocket_connection():
     uri = "wss://ws.bitstamp.net"
-    ws = create_connection(uri)
+    ws = websocket.create_connection(uri)
     print("websocket-connection established.")
     return ws
 
 
-
-def collect_websocket_data(websocket, aggregation_level=30):
-    # open connection
+def _create_influx_connection():
     load_dotenv()
     user=os.getenv("INFLUX_DB_USER")
     password=os.getenv("INFLUX_DB_PASSWORD")
     client = InfluxDBClient('localhost', 8086, user, password, 'pi_influxdb')
     print("DB-connection established:", client)
+    return client
+
+
+
+
+def looking_for_flowers(aggregation_level=30):
+    ws = _start_websocket_connection()
+
+    # open db-connection
+    influx_client = _create_influx_connection()
 
     # request websocket data
     websocket_request_data =  {
@@ -31,7 +41,7 @@ def collect_websocket_data(websocket, aggregation_level=30):
         }
     }
     websocket_request_data_json = json.dumps(websocket_request_data)
-    websocket.send(websocket_request_data_json) # start requesting websocket-data  
+    ws.send(websocket_request_data_json ) # start requesting websocket-data  
     print("channel subscribed.")
 
 
@@ -44,8 +54,9 @@ def collect_websocket_data(websocket, aggregation_level=30):
         buffer = []
         while current_time < start_time + timedelta(seconds=interval):
             try: 
-                result = websocket.recv()
+                result = ws.recv()
                 obj = json.loads(result)
+                print("obj", obj)
 
                 if bool(obj['data']) :
                     price = obj['data']['price']
@@ -57,10 +68,8 @@ def collect_websocket_data(websocket, aggregation_level=30):
                 current_time = datetime.now(tz=pytz.utc)
             except Exception as e:
                 print(e)
-                print("reconnect...")
-                websocket = start_websocket_connection()
-                websocket.send(websocket_request_data_json) # start requesting websocket-data  
-                print("channel subscribed.")
+                break
+               
         
         if len(buffer) >= 2:
             first_buffer_element = buffer[0]
@@ -93,8 +102,8 @@ def collect_websocket_data(websocket, aggregation_level=30):
                         }
                     }
             ]
-            client.write_points(start_point)
-            client.write_points(end_point)
+            influx_client.write_points(start_point)
+            influx_client.write_points(end_point)
         
         if len(buffer) == 1:
             first_buffer_element = buffer[0]
@@ -112,7 +121,11 @@ def collect_websocket_data(websocket, aggregation_level=30):
                         }
                     }
             ]
-            client.write_points(start_point)
+            influx_client.write_points(start_point)
+
+
+
+
 
 
 
