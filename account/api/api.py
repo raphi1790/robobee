@@ -87,7 +87,7 @@ def _connect_influx_db():
 
 def write_transaction(type,id, timestamp, price, amount):
     try:
-        client = _connet_influx_db()
+        client = _connect_influx_db()
         point = [
                             {
                                 "measurement": "transactions",
@@ -101,7 +101,7 @@ def write_transaction(type,id, timestamp, price, amount):
                                 "time": timestamp,
                                 "fields": {
                                     "price": float(price),
-                                    "amount": floact(amount) 
+                                    "amount": float(amount) 
                                 }
                             }
                     ]
@@ -157,7 +157,7 @@ def get_balance():
 
 
 def get_current_eth_eur_value():
-    client = _connet_influx_db()
+    client = _connect_influx_db()
     #print("DB-connection established:", client)
     result_set = client.query('SELECT value FROM ethereum_price WHERE time > now() - 2m order by time desc limit 1')
     if len(result_set) > 0:
@@ -167,16 +167,24 @@ def get_current_eth_eur_value():
         return None
 
 def get_eth_eur_values(interval_str='1d',to_dt_str='now()' ):
-    load_dotenv()
-    user=os.getenv("INFLUX_DB_USER")
-    password=os.getenv("INFLUX_DB_PASSWORD")
-    client = InfluxDBClient('localhost', 8086, user, password, 'pi_influxdb')
+    client = _connect_influx_db()
     query_str = f"SELECT value FROM ethereum_price WHERE time > {to_dt_str} - {interval_str} order by time desc"
     print("query_str", query_str)
     result_set = client.query(query_str)
     if len(result_set) > 0:
         result_points = list(result_set.get_points("ethereum_price"))
         return [float(result_points[idx]['value']) for idx in range(len(result_points))]
+    else:
+        return None
+
+def get_last_transactions(type='buy'):
+    client = _connect_influx_db()
+    #print("DB-connection established:", client)
+    query = f"""SELECT * FROM transactions WHERE type = '{type}' order by time desc limit 1"""
+    result_set = client.query(query)
+    if len(result_set) > 0:
+        result_points = list(result_set.get_points("transactions"))
+        return float(result_points[0]['price'])
     else:
         return None
 
@@ -287,6 +295,7 @@ def cancel_order(order_id):
     return _prepare_response(r.content)
 
 
+
 def buy_limit_order(amount, price):
     if not (isinstance(price, int) or isinstance(price, float)):
         raise Exception('price is not a number') 
@@ -349,7 +358,7 @@ def buy_eth(amount):
             print("status_content", status_content['status'])
             if status_content['status'] == 'Open':
                 if float(status_content['amount_remaining']) < amount:
-                    # a part of the order is fulfilled
+                    # a subset of the original order is fulfilled
                     cancel_content = cancel_order(str(order_id))
                     print("open, limit_content", limit_content)
                     write_transaction('buy',limit_content['id'], limit_content['datetime'], 
@@ -413,12 +422,17 @@ def sell_eth(amount):
     if amount <= 0 or amount is None:
         return 
     current_etheur_value = get_current_eth_eur_value()
+    print("current_value", current_etheur_value)
+    # current_etheur_value= 3000
     for idx in range(3):
         try:
-            bidding_value = round(current_etheur_value - idx * 0.3 ,2)
+            bidding_value = round(float(current_etheur_value) - idx * 0.5 ,2)
             print("bidding_value", bidding_value)
             limit_content = sell_limit_order(amount, bidding_value)
-            print("limit_content", limit_content)
+            print(limit_content)
+            if not _is_valid_limit_response(limit_content):
+                break
+            
             order_id = limit_content['id']
             print("limit_content", limit_content)
             print("order_id", order_id)
@@ -426,14 +440,29 @@ def sell_eth(amount):
             status_content = check_order_status(str(order_id))
             print("status_content", status_content['status'])
             if status_content['status'] == 'Open':
-                cancel_content = cancel_order(str(order_id))
-                print("cancel_content",cancel_content)
-                current_etheur_value = bidding_value
-            else:
+                if float(status_content['amount_remaining']) < amount:
+                    # a subset of the original order is fulfilled
+                    cancel_content = cancel_order(str(order_id))
+                    print("open, limit_content", limit_content)
+                    write_transaction('sell',limit_content['id'], limit_content['datetime'], 
+                            limit_content['price'],limit_content['amount'])
+                    return limit_content
+                else:
+                    cancel_content = cancel_order(str(order_id))
+                    print("cancel_content",cancel_content)
+            elif status_content['status'] == 'Finished':
+                print("finished, limit_content", limit_content)
+                if bool(limit_content['id']):
+                    print(limit_content)
+                    write_transaction('sell',limit_content['id'], limit_content['datetime'], 
+                            limit_content['price'],limit_content['amount'])
                 return limit_content
-        except ValueError:
-            print("Oops!  Something went wrong with buying ETH")
+            else:
+                cancel_content = cancel_order(str(order_id))
 
+        except ValueError:
+            print("Oops!  Something went wrong with selling ETH")
+    return None
 
 
 
