@@ -1,11 +1,12 @@
 import sys
-from api.api import get_balance, get_current_eth_eur_value, buy_eth, sell_eth, get_eth_eur_values
+from api import get_balance, get_current_eth_eur_value, buy_eth, sell_eth, get_eth_eur_values
 from dotenv import load_dotenv, find_dotenv
 import time
 import os
 from influxdb import InfluxDBClient
 from datetime import datetime, timedelta
 import pytz
+from helper import determine_status
 
 
 def _calculate_eth(input_budget):
@@ -31,20 +32,29 @@ def _is_buyable(current_eth_value):
         return False
 
 def collect_honey():
+    while True:
+        action = determine_status()
+        print("action", action)
+    #     if action == 'buy':
+        
+    #     if action == 'sell':
+        
+        time.sleep(30)
+        
 
-    RESEVERE = 2800
-    FEE=0.005
-    MARGIN=0.01
-    upper_threshold = 2*FEE + MARGIN
-    eur_available, eth_available = get_balance()
-    tradable_budget = eur_available-RESEVERE
-    print("tradable_budget",tradable_budget)
-    current_eth_value = get_current_eth_eur_value()
-    if tradable_budget > 0 and eth_available == 0 and _is_buyable(current_eth_value):
-        num_eth = _calculate_eth(tradable_budget)
-        print("num_eth",num_eth)
-        # response = buy_eth(num_eth)
-    if eth_available > 0:
+    # RESEVERE = 2800
+    # FEE=0.005
+    # MARGIN=0.01
+    # upper_threshold = 2*FEE + MARGIN
+    # eur_available, eth_available = get_balance()
+    # tradable_budget = eur_available-RESEVERE
+    # print("tradable_budget",tradable_budget)
+    # current_eth_value = get_current_eth_eur_value()
+    # if tradable_budget > 0 and eth_available == 0 and _is_buyable(current_eth_value):
+    #     num_eth = _calculate_eth(tradable_budget)
+    #     print("num_eth",num_eth)
+    #     # response = buy_eth(num_eth)
+    # if eth_available > 0:
 
 
         

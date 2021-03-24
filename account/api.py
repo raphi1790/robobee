@@ -173,13 +173,14 @@ def get_eth_eur_values(interval_str='1d',to_dt_str='now()' ):
     result_set = client.query(query_str)
     if len(result_set) > 0:
         result_points = list(result_set.get_points("ethereum_price"))
+        # Reverse order such that most recent stock_price is at idx = lenght - 1
         return [float(result_points[idx]['value']) for idx in range(len(result_points))]
     else:
         return None
 
-def get_last_transactions(type='buy'):
+def get_last_transaction_price(type='buy'):
     client = _connect_influx_db()
-    #print("DB-connection established:", client)
+    # print("DB-connection established:", client)
     query = f"""SELECT * FROM transactions WHERE type = '{type}' order by time desc limit 1"""
     result_set = client.query(query)
     if len(result_set) > 0:

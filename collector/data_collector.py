@@ -27,7 +27,7 @@ def _create_influx_connection():
 
 
 
-def looking_for_flowers(aggregation_level=30):
+def discover_flowers(aggregation_level=30):
     ws = _start_websocket_connection()
 
     # open db-connection
@@ -56,7 +56,7 @@ def looking_for_flowers(aggregation_level=30):
             try: 
                 result = ws.recv()
                 obj = json.loads(result)
-                print("obj", obj)
+                # print("obj", obj)
 
                 if bool(obj['data']) :
                     price = obj['data']['price']
