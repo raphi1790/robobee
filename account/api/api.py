@@ -174,7 +174,7 @@ def get_eth_eur_values(interval_str='1d',to_dt_str='now()' ):
     if len(result_set) > 0:
         result_points = list(result_set.get_points("ethereum_price"))
         # Reverse order such that most recent stock_price is at idx = lenght - 1
-        return [float(result_points[idx]['value']) for idx in range(len(result_points))]
+        return [float(result_points[idx]['value']) for idx in reversed(range(len(result_points)))]
     else:
         return None
 

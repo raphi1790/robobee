@@ -1,5 +1,5 @@
 import sys
-from api import get_balance, get_current_eth_eur_value, buy_eth, sell_eth, get_eth_eur_values
+from api.api import get_balance, get_current_eth_eur_value, buy_eth, sell_eth, get_eth_eur_values
 from dotenv import load_dotenv, find_dotenv
 import time
 import os
