@@ -36,8 +36,9 @@ def _calculate_moving_average(values, window_size=3):
     return moving_averages
 
 def _determine_trend(list_stock_prices):
-    moving_averages = _calculate_moving_average(list_stock_prices,5)
-    if len(moving_averages)<=10:
+    moving_averages = _calculate_moving_average(list_stock_prices,10)
+    print("moving_averages", moving_averages)
+    if len(moving_averages)<=5:
         return None
     
     current_value = moving_averages[0]
@@ -73,8 +74,7 @@ def _is_buyable(reserve, buying_margin, available_eur,available_eth, current_sto
         no_trade_condition = datetime.now() - timedelta(days=1) > last_selling_datetime 
     trend=_determine_trend(past_stock_prices_10m)
     if ((buying_power_condition and upper_threshold_condition_longterm and not (trend == 'decreasing') ) or
-        (buying_power_condition and trend == 'increasing' and upper_threshold_condition_shorterm) or
-        (buying_power_condition and no_trade_condition )  ):
+        (buying_power_condition and trend == 'increasing' and upper_threshold_condition_shorterm) ):
         return True
     
     return False
