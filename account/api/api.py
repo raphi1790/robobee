@@ -341,8 +341,8 @@ def buy_limit_order(amount, price):
 def buy_eth(amount):
     if amount <= 0 or amount is None:
         return 
-    # current_etheur_value = get_current_eth_eur_value()
-    current_etheur_value= 1000
+    current_etheur_value = get_current_eth_eur_value()
+    # current_etheur_value= 1000
     for idx in range(3):
         try:
             bidding_value = round(current_etheur_value + idx * 0.3 ,2)
