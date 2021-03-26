@@ -37,7 +37,6 @@ def _calculate_moving_average(values, window_size=3):
 
 def _determine_trend(list_stock_prices):
     moving_averages = _calculate_moving_average(list_stock_prices,10)
-    print("moving_averages", moving_averages)
     if len(moving_averages)<=5:
         return None
     
