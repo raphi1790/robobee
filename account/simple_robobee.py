@@ -18,8 +18,9 @@ def collect_honey():
         current_stock_price = get_current_eth_eur_value()
         past_stock_prices_1d = get_eth_eur_values(interval_str='1d')
         past_stock_prices_10m = get_eth_eur_values(interval_str='10m')
-        last_buying_price = get_last_transaction_price('buy')
-        action = determine_status(available_eur, available_eth, current_stock_price, RESERVE, FEE, BUYING_MARGIN, SELLING_MARGIN, past_stock_prices_1d, past_stock_prices_10m, last_buying_price)
+        _, last_buying_price = get_last_transaction_price('buy')
+        last_selling_datetime, _ = get_last_transaction_price('sell')
+        action = determine_status(available_eur, available_eth, current_stock_price, RESERVE, FEE, BUYING_MARGIN, SELLING_MARGIN, past_stock_prices_1d, past_stock_prices_10m,last_selling_datetime, last_buying_price)
         print("action", action)
         if action == 'buy':
             tradeable_budget=available_eur - RESERVE

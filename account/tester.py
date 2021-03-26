@@ -1,6 +1,7 @@
 import sys
 from api.api import *
 from helper import _determine_trend
+from datetime import datetime, timedelta
 
 if __name__ == "__main__":
     # content = check_order_status("1340141453066241")
@@ -13,4 +14,9 @@ if __name__ == "__main__":
     # print(content['status'])
     # sell_eth(0.04)
     # eur, eth = get_balance()
-    # get_last_transactions('sell')
+    # a, b = get_last_transaction_price('sell')
+    
+    # print(a)
+    print(datetime(2199,12,31,0,0,0))
+    # print (a -  timedelta(days=1))
+

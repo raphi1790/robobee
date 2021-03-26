@@ -185,9 +185,10 @@ def get_last_transaction_price(type='buy'):
     result_set = client.query(query)
     if len(result_set) > 0:
         result_points = list(result_set.get_points("transactions"))
-        return float(result_points[0]['price'])
+        # return float(result_points[0]['price'])
+        return datetime.strptime(result_points[0]['time'], '%Y-%m-%dT%H:%M:%S.%fZ'), float(result_points[0]['price'])
     else:
-        return None
+        return  None, None
 
 
 def get_open_orders():
