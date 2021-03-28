@@ -17,6 +17,7 @@ if __name__ == "__main__":
     # a, b = get_last_transaction_price('sell')
     
     # print(a)
-    print(datetime(2199,12,31,0,0,0))
+    trend = None
+    print(not (trend == 'decreasing') )
     # print (a -  timedelta(days=1))
 

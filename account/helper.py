@@ -72,8 +72,13 @@ def _is_buyable(reserve, buying_margin, available_eur,available_eth, current_sto
     else:
         no_trade_condition = datetime.now() - timedelta(days=1) > last_selling_datetime 
     trend=_determine_trend(past_stock_prices_10m)
+    print("trend", trend)
     if ((buying_power_condition and upper_threshold_condition_longterm and not (trend == 'decreasing') ) or
         (buying_power_condition and trend == 'increasing' and upper_threshold_condition_shorterm) ):
+        if (buying_power_condition and upper_threshold_condition_longterm and not (trend == 'decreasing')):
+            print("condition longterm satisfied")
+        if (buying_power_condition and trend == 'increasing' and upper_threshold_condition_shorterm):
+            print("condition shorterm satisfied")
         return True
     
     return False
