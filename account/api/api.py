@@ -169,7 +169,7 @@ def get_current_eth_eur_value():
 def get_eth_eur_values(from_dt_str='now()-1d',to_dt_str='now()' ):
     client = _connect_influx_db()
     query_str = f"SELECT value FROM ethereum_price WHERE time >= {from_dt_str} and time <= {to_dt_str} order by time desc"
-    # print("query_str", query_str)
+    print("query_str", query_str)
     result_set = client.query(query_str)
     if len(result_set) > 0:
         result_points = list(result_set.get_points("ethereum_price"))
