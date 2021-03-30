@@ -15,13 +15,13 @@ def get_config_data():
     return float(RESERVE), float(BUYING_MARGIN),float(SELLING_MARGIN), float(FEE)
     
 
-def _is_plausible(available_eur, available_eth, current_stock_price, reserve, buying_margin, selling_margin, fee, past_stock_prices_1d, past_stock_prices_10m):
+def _is_plausible(available_eur, available_eth, current_stock_price, reserve, buying_margin, selling_margin, fee, past_stock_prices_1d,past_stock_prices_7d_1d, past_stock_prices_10m):
     is_plausible = False
     if (available_eth is  not None and   available_eur is not None and 
             current_stock_price is not None and buying_margin is not None and 
             selling_margin is not None and 
             fee is not  None and reserve is not None and 
-            len(past_stock_prices_1d)>50 and len(past_stock_prices_10m)>5) :
+            len(past_stock_prices_1d)>50 and len(past_stock_prices_10m)>5 and len(past_stock_prices_7d_1d)>50) :
         is_plausible = True
     return is_plausible
 
@@ -57,25 +57,35 @@ def _determine_trend(list_stock_prices):
     return None
 
 
-def _upper_threshold_is_satisfied(current_stock_price,past_stock_prices_1d,margin):
-    values_above_threshold = [value for value in past_stock_prices_1d if value > (1+margin)*current_stock_price]
-    return len(values_above_threshold)>0 
+def _is_above_threshold(current_stock_price,past_stock_prices,margin):
+    values_above_threshold = [value for value in past_stock_prices if value > (1+margin)*current_stock_price]
+    return len(values_above_threshold)>3
+
+def _upper_threshold_is_satisfied(current_stock_price,past_stock_prices_1d,past_stock_prices_7d_1d, buying_margin):
+    is_above_upper_threshold_1d = _is_above_threshold(current_stock_price,past_stock_prices_1d, buying_margin)
+    is_above_upper_threshold_7d = _is_above_threshold(current_stock_price,past_stock_prices_7d_1d,buying_margin)
+    is_alltime_high = is_above_upper_threshold_1d  and not is_above_upper_threshold_7d
+    if(is_alltime_high):
+        # Increase buying_margin in order to deal with recen alltime-highs
+        return _is_above_threshold(current_stock_price,past_stock_prices_1d,1.5*buying_margin)
+    else:
+        return _is_above_threshold(current_stock_price,past_stock_prices_1d,buying_margin)
     
 
-def _is_buyable(reserve, buying_margin, available_eur,available_eth, current_stock_price, past_stock_prices_1d, past_stock_prices_10m, last_selling_datetime):
+def _is_buyable(reserve, buying_margin, available_eur,available_eth, current_stock_price, past_stock_prices_1d,past_stock_prices_7d_1d, past_stock_prices_10m, last_selling_datetime):
     tradeable_budet=available_eur-reserve
     buying_power_condition=tradeable_budet>(available_eth*current_stock_price)
-    upper_threshold_condition_longterm = _upper_threshold_is_satisfied(current_stock_price,past_stock_prices_1d,buying_margin)
-    upper_threshold_condition_shorterm = _upper_threshold_is_satisfied(current_stock_price,past_stock_prices_10m,buying_margin)
-    if last_selling_datetime is None:
-        no_trade_condition = True
-    else:
-        no_trade_condition = datetime.now() - timedelta(days=1) > last_selling_datetime 
+    upper_threshold_condition_shorterm = _is_above_threshold(current_stock_price,past_stock_prices_10m,buying_margin)
+    upper_threshold_is_satisfied_longterm = _upper_threshold_is_satisfied(current_stock_price,past_stock_prices_1d,past_stock_prices_7d_1d, buying_margin)
+    #if last_selling_datetime is None:
+        # no_trade_condition = True
+    # else:
+        # no_trade_condition = datetime.now() - timedelta(days=1) > last_selling_datetime 
     trend=_determine_trend(past_stock_prices_10m)
     print("trend", trend)
-    if ((buying_power_condition and upper_threshold_condition_longterm and not (trend == 'decreasing') ) or
+    if ((buying_power_condition and upper_threshold_is_satisfied_longterm and not (trend == 'decreasing') ) or
         (buying_power_condition and trend == 'increasing' and upper_threshold_condition_shorterm) ):
-        if (buying_power_condition and upper_threshold_condition_longterm and not (trend == 'decreasing')):
+        if (buying_power_condition and upper_threshold_is_satisfied_longterm and not (trend == 'decreasing')):
             print("condition longterm satisfied")
         if (buying_power_condition and trend == 'increasing' and upper_threshold_condition_shorterm):
             print("condition shorterm satisfied")
@@ -84,21 +94,22 @@ def _is_buyable(reserve, buying_margin, available_eur,available_eth, current_sto
     return False
 
 
-def _is_sellable(selling_margin, available_eth, current_stock_price, last_buying_price):
+def _is_sellable(selling_margin, available_eth, current_stock_price, last_buying_price, past_stock_prices_10m):
     modified_buying_price=last_buying_price or 10000 # 10000 is just a default value in case of None
     stock_price_condition= (1+selling_margin)*modified_buying_price < current_stock_price
     available_eth_condition=available_eth>=0.03
-    if (available_eth_condition and stock_price_condition):
+    trend=_determine_trend(past_stock_prices_10m)
+    if (available_eth_condition and stock_price_condition and not (trend == 'increasing')):
         return True
     return False
 
-def determine_status(available_eur, available_eth, current_stock_price, RESERVE, FEE, BUYING_MARGIN, SELLING_MARGIN, past_stock_prices_1d, past_stock_prices_10m,last_selling_datetime, last_buying_price):
-    is_plausible = _is_plausible(available_eur, available_eth, current_stock_price, RESERVE, FEE, BUYING_MARGIN, SELLING_MARGIN, past_stock_prices_1d, past_stock_prices_10m)
+def determine_status(available_eur, available_eth, current_stock_price, RESERVE, FEE, BUYING_MARGIN, SELLING_MARGIN, past_stock_prices_1d,past_stock_prices_7d_1d, past_stock_prices_10m,last_selling_datetime, last_buying_price):
+    is_plausible = _is_plausible(available_eur, available_eth, current_stock_price, RESERVE, FEE, BUYING_MARGIN, SELLING_MARGIN, past_stock_prices_1d,past_stock_prices_7d_1d, past_stock_prices_10m)
     print("is_plausible",is_plausible)
 
     if is_plausible:
-        is_buyable = _is_buyable(RESERVE, BUYING_MARGIN, available_eur,available_eth, current_stock_price, past_stock_prices_1d, past_stock_prices_10m, last_selling_datetime)
-        is_sellable = _is_sellable(SELLING_MARGIN, available_eth, current_stock_price, last_buying_price)
+        is_buyable = _is_buyable(RESERVE, BUYING_MARGIN, available_eur,available_eth, current_stock_price, past_stock_prices_1d,past_stock_prices_7d_1d, past_stock_prices_10m, last_selling_datetime)
+        is_sellable = _is_sellable(SELLING_MARGIN, available_eth, current_stock_price, last_buying_price, past_stock_prices_10m)
         print("is_buyable", is_buyable)
         print("is_sellable", is_sellable)
         if is_buyable:
