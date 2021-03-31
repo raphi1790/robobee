@@ -16,9 +16,9 @@ def collect_honey():
     while True:
         available_eur, available_eth = get_balance()
         current_stock_price = get_current_eth_eur_value()
-        past_stock_prices_1d = get_eth_eur_values(from_dt_str='now()-1d' , to_dt_str='now()')
-        past_stock_prices_7d_1d = get_eth_eur_values(from_dt_str='now()-7d' , to_dt_str='now()-1d')
-        past_stock_prices_10m = get_eth_eur_values(from_dt_str='now()-10m' , to_dt_str='now()')
+        past_stock_prices_1d = get_eth_eur_values(from_dt_str='now() - 1d' , to_dt_str='now()')
+        past_stock_prices_7d_1d = get_eth_eur_values(from_dt_str='now() - 7d' , to_dt_str='now() - 1d')
+        past_stock_prices_10m = get_eth_eur_values(from_dt_str='now() - 10m' , to_dt_str='now()')
         _, last_buying_price = get_last_transaction_price('buy')
         last_selling_datetime, _ = get_last_transaction_price('sell')
         action = determine_status(available_eur, available_eth, current_stock_price, RESERVE, FEE, BUYING_MARGIN, SELLING_MARGIN, past_stock_prices_1d,past_stock_prices_7d_1d, past_stock_prices_10m,last_selling_datetime, last_buying_price)
