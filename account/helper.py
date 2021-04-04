@@ -107,17 +107,24 @@ def _buy_fallback(last_selling_datetime, last_buying_datetime, last_buying_price
        return True
     return False
 
+def _calculate_selling_margin(last_buying_datetime, selling_margin):
+    current_time = datetime.now() 
+    if last_buying_datetime < current_time - timedelta(days=1):
+        return 0.8*selling_margin
+    if last_buying_datetime < current_time - timedelta(days=2):
+        return 0.6 * selling_margin 
+    else:
+        return selling_margin
+
 def _is_sellable(selling_margin, available_eth, current_stock_price, last_buying_price, past_stock_prices_10m,trend, available_eur, reserve, last_buying_datetime):
     modified_buying_price=last_buying_price or 10000 # 10000 is just a default value in case of None
-    stock_price_condition= (1+selling_margin)*modified_buying_price < current_stock_price
+    modified_margin = _calculate_selling_margin(last_buying_datetime, selling_margin)
+    stock_price_condition= (1+modified_margin)*modified_buying_price < current_stock_price
     available_eth_condition=available_eth>=0.03
     fallback_condition_eur = available_eur < 0.1 * reserve
     fallback_condition_price = (1.12)*modified_buying_price < current_stock_price # calculated amount, where we still make profit; TBD write function for that
-    long_lasting_condition = last_buying_datetime < datetime.now() - timedelta(days=2)
-    stock_price_condition_long_lasting = (1+0.001)*modified_buying_price < current_stock_price # after 2 days of non-selling, we reduce the margin
     if ((available_eth_condition and stock_price_condition and not (trend == 'increasing')) or
-        (fallback_condition_eur and fallback_condition_price and not (trend == 'increasing')) or 
-        (long_lasting_condition and stock_price_condition_long_lasting and not (trend == 'increasing'))) :
+        (fallback_condition_eur and fallback_condition_price and not (trend == 'increasing'))) :
         return True
     return False
 
