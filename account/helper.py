@@ -109,10 +109,10 @@ def _buy_fallback(last_selling_datetime, last_buying_datetime, last_buying_price
 
 def _calculate_selling_margin(last_buying_datetime, selling_margin):
     current_time = datetime.now() 
+    if last_buying_datetime < current_time - timedelta(days=2):
+        return 0.6 * selling_margin
     if last_buying_datetime < current_time - timedelta(days=1):
         return 0.8*selling_margin
-    if last_buying_datetime < current_time - timedelta(days=2):
-        return 0.6 * selling_margin 
     else:
         return selling_margin
 
