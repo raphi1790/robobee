@@ -114,7 +114,7 @@ def _is_sellable(selling_margin, available_eth, current_stock_price, last_buying
     fallback_condition_eur = available_eur < 0.1 * reserve
     fallback_condition_price = (1.12)*modified_buying_price < current_stock_price # calculated amount, where we still make profit; TBD write function for that
     if ((available_eth_condition and stock_price_condition and not (trend == 'increasing')) or
-        (fallback_condition_eur and fallback_condition_price )) :
+        (fallback_condition_eur and fallback_condition_price and not (trend == 'increasing'))) :
         return True
     return False
 
