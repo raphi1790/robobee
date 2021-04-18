@@ -337,14 +337,17 @@ def buy_limit_order(amount, price):
 
 
 
-def buy_eth(amount):
-    if amount <= 0 or amount is None:
+def buy_eth(amount, input_price):
+    if amount <= 0 or amount is None or input_price is None:
         return 
     current_etheur_value = get_current_eth_eur_value()
+    # The price might jumped up again on current_etheur_value, therefore, we want to take the value, which satisfied the rules
+    base_price = min(current_etheur_value, input_price) 
+
     # current_etheur_value= 1000
     for idx in range(3):
         try:
-            bidding_value = round(current_etheur_value + idx * 0.3 ,2)
+            bidding_value = round(float(base_price) + idx * 0.3 ,2)
             print("bidding_value", bidding_value)
             limit_content = buy_limit_order(amount, bidding_value)
             print(limit_content)
@@ -419,15 +422,17 @@ def sell_limit_order(amount, price):
     return _prepare_response(r.content)
 
 
-def sell_eth(amount):
-    if amount <= 0 or amount is None:
+def sell_eth(amount, input_price):
+    if amount <= 0 or amount is None or input_price is None:
         return 
     current_etheur_value = get_current_eth_eur_value()
-    print("current_value", current_etheur_value)
+     # The price might jumped down again on current_etheur_value, therefore, we want to take the value, which satisfied the rules
+    base_price = max(current_etheur_value, input_price) 
+    # print("base_price", base_price)
     # current_etheur_value= 3000
     for idx in range(3):
         try:
-            bidding_value = round(float(current_etheur_value) - idx * 0.5 ,2)
+            bidding_value = round(float(base_price) - idx * 0.5 ,2)
             print("bidding_value", bidding_value)
             limit_content = sell_limit_order(amount, bidding_value)
             print(limit_content)

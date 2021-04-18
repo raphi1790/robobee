@@ -28,17 +28,17 @@ def collect_honey():
             buying_eth = calculate_eth(tradeable_budget, current_stock_price)
             print("tradeable_budget", tradeable_budget)
             print("buying_eth", buying_eth)
-            buy_eth(buying_eth)
+            buy_eth(buying_eth, current_stock_price)
         if action == 'buy_fallback':
             tradeable_budget=RESERVE
             buying_eth = calculate_eth(tradeable_budget, current_stock_price)
             print("tradeable_budget", tradeable_budget)
             print("buying_eth", buying_eth)
-            buy_eth(buying_eth)
+            buy_eth(buying_eth, current_stock_price)
 
         if action == 'sell':
             print("selling available_eth", available_eth)
-            sell_eth(available_eth)
+            sell_eth(available_eth, current_stock_price )
 
         
         time.sleep(30)
