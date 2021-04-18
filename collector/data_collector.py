@@ -5,6 +5,32 @@ from datetime import datetime, timedelta
 import pytz
 import os
 from dotenv import load_dotenv
+try:
+    import thread
+except ImportError:
+    import _thread as thread
+import time
+
+
+class Buffer:
+    data=[]
+
+    def __init__(self):
+        self.data=[]
+    def append(self, element):
+        self.data.append(element)
+    def get_data(self):
+        return self.data
+    def reset_data(self):
+        self.data = []
+    def get_time_difference(self):
+        if len(self.data)==0:
+            return 0
+        first_element = self.data[0]
+        last_element = self.data[len(self.data)-1]
+        ts_firs_element = first_element['timestamp']
+        ts_last_element = last_element['timestamp']
+        return (ts_last_element-ts_firs_element).seconds
 
 
 
@@ -25,55 +51,40 @@ def _create_influx_connection():
     return client
 
 
-
-
-def discover_flowers(aggregation_level=30):
-    ws = _start_websocket_connection()
-
-    # open db-connection
-    influx_client = _create_influx_connection()
-
-    # request websocket data
-    websocket_request_data =  {
-        "event": "bts:subscribe",
-        "data": {
-            "channel": "live_trades_etheur"
-        }
-    }
-    websocket_request_data_json = json.dumps(websocket_request_data)
-    ws.send(websocket_request_data_json ) # start requesting websocket-data  
-    print("channel subscribed.")
-
-
-    print("aggregation-level [s]:", aggregation_level)
-    print("start collecting data...")
-    while True:
-        start_time = datetime.now(tz=pytz.utc)
-        current_time = start_time
-        interval = aggregation_level # aggregate all transactions within the time-interval into one point
-        buffer = []
-        while current_time < start_time + timedelta(seconds=interval):
-            try: 
-                result = ws.recv()
-                obj = json.loads(result)
-                # print("obj", obj)
-
-                if bool(obj['data']) :
-                    price = obj['data']['price']
-                    timestamp = obj['data']['timestamp']
-                    utc_timestamp = datetime.fromtimestamp(int(timestamp)).astimezone(pytz.utc)
-                    buffer.append({'timestamp': utc_timestamp, 'price': price})
-
-                    
-                current_time = datetime.now(tz=pytz.utc)
-            except Exception as e:
-                print(e)
-                break
-               
-        
-        if len(buffer) >= 2:
-            first_buffer_element = buffer[0]
-            last_buffer_element = buffer[len(buffer) -1]
+def on_message(ws, message, buffer, influx_client, aggregation_level):
+    obj = json.loads(message)
+    if bool(obj['data']) :
+        price = obj['data']['price']
+        timestamp = obj['data']['timestamp']
+        utc_timestamp = datetime.fromtimestamp(int(timestamp)).astimezone(pytz.utc)
+        buffer.append({'timestamp': utc_timestamp, 'price': price})
+    
+    time_difference_buffer = buffer.get_time_difference()
+    if time_difference_buffer > aggregation_level:
+        buffer_data = buffer.get_data()
+        if len(buffer_data) == 1:
+            first_buffer_element = buffer_data[0]
+            start_point = [
+                    {
+                        "measurement": "ethereum_price",
+                        "tags": {
+                            "currency": "EUR",
+                            "exchange": "Bitstamp"
+                        
+                        },
+                        "time": first_buffer_element['timestamp'],
+                        "fields": {
+                            "value": first_buffer_element['price']
+                        }
+                    }
+            ]
+            print("start_point", start_point)
+            influx_client.write_points(start_point)
+            
+            
+        if len(buffer_data) > 1:
+            first_buffer_element = buffer_data[0]
+            last_buffer_element = buffer_data[len(buffer_data) -1]
             start_point = [
                     {
                         "measurement": "ethereum_price",
@@ -102,26 +113,49 @@ def discover_flowers(aggregation_level=30):
                         }
                     }
             ]
+            print("start_point", start_point)
+            print("end_point", end_point)
             influx_client.write_points(start_point)
             influx_client.write_points(end_point)
-        
-        if len(buffer) == 1:
-            first_buffer_element = buffer[0]
-            start_point = [
-                    {
-                        "measurement": "ethereum_price",
-                        "tags": {
-                            "currency": "EUR",
-                            "exchange": "Bitstamp"
-                        
-                        },
-                        "time": first_buffer_element['timestamp'],
-                        "fields": {
-                            "value": first_buffer_element['price']
-                        }
-                    }
-            ]
-            influx_client.write_points(start_point)
+            
+        buffer.reset_data()
+    
+
+def on_error(ws, error):
+    print(error)
+
+def on_close(ws):
+    print("### closed ###")
+
+def on_open(ws):
+    def run(*args):
+        # request websocket data
+        websocket_request_data =  {
+            "event": "bts:subscribe",
+            "data": {
+                "channel": "live_trades_etheur"
+            }
+        }
+        websocket_request_data_json = json.dumps(websocket_request_data)
+        ws.send(websocket_request_data_json)
+    thread.start_new_thread(run, ())
+    print("websocket-connection established.")
+
+
+def discover_flowers(aggregation_level=30):
+    websocket.enableTrace(True)
+    buffer = Buffer()
+    influx_client = _create_influx_connection()
+    print("aggregation-level [s]:", aggregation_level)
+    ws = websocket.WebSocketApp("wss://ws.bitstamp.net",
+                              on_open = on_open,
+                              on_message = lambda ws,msg: on_message(ws,msg,buffer, influx_client, aggregation_level),
+                              on_error = on_error,
+                              on_close = on_close)
+
+    ws.run_forever(suppress_origin=True)
+
+
 
 
 
