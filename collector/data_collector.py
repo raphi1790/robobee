@@ -78,7 +78,6 @@ def on_message(ws, message, buffer, influx_client, aggregation_level):
                         }
                     }
             ]
-            print("start_point", start_point)
             influx_client.write_points(start_point)
             
             
@@ -113,8 +112,6 @@ def on_message(ws, message, buffer, influx_client, aggregation_level):
                         }
                     }
             ]
-            print("start_point", start_point)
-            print("end_point", end_point)
             influx_client.write_points(start_point)
             influx_client.write_points(end_point)
             
