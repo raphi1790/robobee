@@ -124,6 +124,12 @@ def on_error(ws, error):
 def on_close(ws):
     print("### closed ###")
 
+def on_ping(wsapp, message):
+    print("Got a ping!")
+
+def on_pong(wsapp, message):
+    print("Got a pong! No need to respond")
+
 def on_open(ws):
     def run(*args):
         # request websocket data
@@ -148,9 +154,11 @@ def discover_flowers(aggregation_level=30):
                               on_open = on_open,
                               on_message = lambda ws,msg: on_message(ws,msg,buffer, influx_client, aggregation_level),
                               on_error = on_error,
-                              on_close = on_close)
+                              on_close = on_close,
+                              on_ping=on_ping, 
+                              on_pong=on_pong)
 
-    ws.run_forever(suppress_origin=True)
+    ws.run_forever(suppress_origin=True, ping_interval=60, ping_timeout=10)
 
 
 
