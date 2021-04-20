@@ -158,7 +158,7 @@ def discover_flowers(aggregation_level=30):
                               on_ping=on_ping, 
                               on_pong=on_pong)
 
-    ws.run_forever(suppress_origin=True, ping_interval=60, ping_timeout=10)
+    ws.run_forever(suppress_origin=True, ping_interval=30, ping_timeout=10)
 
 
 
