@@ -100,8 +100,9 @@ def _buy_fallback(last_selling_datetime, last_buying_datetime, last_buying_price
     buying_was_last_trade = last_selling_datetime < last_buying_datetime # buying was the last trade
     eth_are_already_bought = available_eth > 0.03 
     only_eur_reserve_is_available = available_eur < reserve * 1.01
-    lower_trend_than_last_buying = _is_below_threshold(last_buying_price,past_stock_prices_1d,0.2 )
-    current_price_condition = current_stock_price * 1.2< last_buying_price 
+    fallback_ratio = 0.15
+    lower_trend_than_last_buying = _is_below_threshold(last_buying_price,past_stock_prices_1d,fallback_ratio )
+    current_price_condition = current_stock_price * (1+fallback_ratio)< last_buying_price 
     if(buying_was_last_trade and eth_are_already_bought and only_eur_reserve_is_available and
        lower_trend_than_last_buying and current_price_condition and not (trend == 'decreasing') ):
        return True
@@ -116,13 +117,27 @@ def _calculate_selling_margin(last_buying_datetime, selling_margin):
     else:
         return selling_margin
 
-def _is_sellable(selling_margin, available_eth, current_stock_price, last_buying_price, past_stock_prices_10m,trend, available_eur, reserve, last_buying_datetime):
+def _is_fallback_sellable(last_buying_transaction, last_fallback_transaction, selling_margin, current_stock_price, available_eth):
+    if (last_fallback_transaction['amount'] is None or last_fallback_transaction['price'] is None
+         or last_buying_transaction['amount'] is None or last_buying_transaction['price'] is None) :
+        return False
+    
+    fallback_reserve = last_fallback_transaction['amount'] * last_fallback_transaction['price']
+    traded_budget = last_buying_transaction['amount'] * last_buying_transaction['price']
+    necessary_stock_price = ((1+selling_margin)*traded_budget + fallback_reserve) /available_eth
+    return  necessary_stock_price < current_stock_price
+ 
+
+
+def _is_sellable(selling_margin, available_eth, current_stock_price, past_stock_prices_10m,trend, available_eur, reserve, last_buying_transaction, last_selling_transaction, last_fallback_transaction):
+    last_buying_datetime = last_buying_transaction['time']
+    last_buying_price = last_buying_transaction['price']
     modified_buying_price=last_buying_price or 10000 # 10000 is just a default value in case of None
     modified_margin = _calculate_selling_margin(last_buying_datetime, selling_margin)
     stock_price_condition= (1+modified_margin)*modified_buying_price < current_stock_price
     available_eth_condition=available_eth>=0.03
     fallback_condition_eur = available_eur < 0.1 * reserve
-    fallback_condition_price = (1.12)*modified_buying_price < current_stock_price # calculated amount, where we still make profit; TBD write function for that
+    fallback_condition_price = _is_fallback_sellable(last_buying_transaction, last_fallback_transaction, selling_margin, current_stock_price, available_eth) # calculated amount, where we still make profit;
     if ((available_eth_condition and stock_price_condition and not (trend == 'increasing')) or
         (fallback_condition_eur and fallback_condition_price and not (trend == 'increasing'))) :
         return True
@@ -130,15 +145,20 @@ def _is_sellable(selling_margin, available_eth, current_stock_price, last_buying
 
 
 
-def determine_status(available_eur, available_eth, current_stock_price, RESERVE, FEE, BUYING_MARGIN, SELLING_MARGIN, past_stock_prices_1d,past_stock_prices_7d_1d, past_stock_prices_10m,last_selling_datetime, last_selling_price, last_buying_datetime, last_buying_price):
+def determine_status(available_eur, available_eth, current_stock_price, RESERVE, FEE, BUYING_MARGIN, SELLING_MARGIN
+    , past_stock_prices_1d,past_stock_prices_7d_1d
+    , past_stock_prices_10m
+    ,last_buying_transaction
+    ,last_selling_transaction
+    ,last_fallback_transaction):
     is_plausible = _is_plausible(available_eur, available_eth, current_stock_price, RESERVE, FEE, BUYING_MARGIN, SELLING_MARGIN, past_stock_prices_1d,past_stock_prices_7d_1d, past_stock_prices_10m)
     print("is_plausible",is_plausible)
     if is_plausible:
         trend=_determine_trend(past_stock_prices_10m)
         print("trend", trend)
-        is_buyable = _is_buyable(RESERVE, BUYING_MARGIN, available_eur,available_eth, current_stock_price, past_stock_prices_1d,past_stock_prices_7d_1d, past_stock_prices_10m, last_selling_datetime, trend)
-        is_sellable = _is_sellable(SELLING_MARGIN, available_eth, current_stock_price, last_buying_price, past_stock_prices_10m, trend, available_eur, RESERVE, last_buying_datetime)
-        buy_fallback = _buy_fallback(last_selling_datetime, last_buying_datetime, last_buying_price, available_eth, available_eur, RESERVE,past_stock_prices_1d,past_stock_prices_10m, current_stock_price, trend)
+        is_buyable = _is_buyable(RESERVE, BUYING_MARGIN, available_eur,available_eth, current_stock_price, past_stock_prices_1d,past_stock_prices_7d_1d, past_stock_prices_10m, last_selling_transaction['time'], trend)
+        is_sellable = _is_sellable(SELLING_MARGIN, available_eth, current_stock_price, past_stock_prices_10m, trend, available_eur, RESERVE, last_buying_transaction, last_selling_transaction, last_fallback_transaction)
+        buy_fallback = _buy_fallback(last_selling_transaction['time'], last_buying_transaction['time'], last_buying_transaction['price'], available_eth, available_eur, RESERVE,past_stock_prices_1d,past_stock_prices_10m, current_stock_price, trend)
         print("is_buyable", is_buyable)
         print("is_sellable", is_sellable)
         print("buy_fallback", buy_fallback )

@@ -177,7 +177,7 @@ def get_eth_eur_values(from_dt_str='now() - 1d',to_dt_str='now()' ):
     else:
         return None
 
-def get_last_transaction_price(type='buy'):
+def get_last_transaction(type='buy'):
     client = _connect_influx_db()
     # print("DB-connection established:", client)
     query = f"""SELECT * FROM transactions WHERE type = '{type}' order by time desc limit 1"""
@@ -185,9 +185,17 @@ def get_last_transaction_price(type='buy'):
     if len(result_set) > 0:
         result_points = list(result_set.get_points("transactions"))
         # return float(result_points[0]['price'])
-        return datetime.strptime(result_points[0]['time'], '%Y-%m-%dT%H:%M:%S.%fZ'), float(result_points[0]['price'])
+        transaction = {'time': datetime.strptime(result_points[0]['time'], '%Y-%m-%dT%H:%M:%S.%fZ'), 
+                'price': float(result_points[0]['price']),
+                'amount':  float(result_points[0]['amount'])
+                }
+        return transaction
     else:
-        return  None, None
+        empyt_transaction =   {'time': None, 
+                'price': None,
+                'amount':  None   
+            }
+        return empyt_transaction
 
 
 def get_open_orders():
@@ -337,7 +345,7 @@ def buy_limit_order(amount, price):
 
 
 
-def buy_eth(amount, input_price):
+def buy_eth(amount, input_price, tag='buy'):
     if amount <= 0 or amount is None or input_price is None:
         return 
     current_etheur_value = get_current_eth_eur_value()
@@ -365,7 +373,7 @@ def buy_eth(amount, input_price):
                     # a subset of the original order is fulfilled
                     cancel_content = cancel_order(str(order_id))
                     print("open, limit_content", limit_content)
-                    write_transaction('buy',limit_content['id'], limit_content['datetime'], 
+                    write_transaction(tag,limit_content['id'], limit_content['datetime'], 
                             limit_content['price'],limit_content['amount'])
                     return limit_content
                 else:
@@ -375,7 +383,7 @@ def buy_eth(amount, input_price):
                 print("finished, limit_content", limit_content)
                 if bool(limit_content['id']):
                     print(limit_content)
-                    write_transaction('buy',limit_content['id'], limit_content['datetime'], 
+                    write_transaction(tag,limit_content['id'], limit_content['datetime'], 
                             limit_content['price'],limit_content['amount'])
                 return limit_content
             else:
