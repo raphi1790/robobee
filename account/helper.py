@@ -100,11 +100,12 @@ def _buy_fallback(last_selling_datetime, last_buying_datetime, last_buying_price
     buying_was_last_trade = last_selling_datetime < last_buying_datetime # buying was the last trade
     eth_are_already_bought = available_eth > 0.03 
     only_eur_reserve_is_available = available_eur < reserve * 1.01
+    fallback_is_already_bought = available_eur < 20
     fallback_ratio = 0.15
     lower_trend_than_last_buying = _is_below_threshold(last_buying_price,past_stock_prices_1d,fallback_ratio )
     current_price_condition = current_stock_price * (1+fallback_ratio)< last_buying_price 
     if(buying_was_last_trade and eth_are_already_bought and only_eur_reserve_is_available and
-       lower_trend_than_last_buying and current_price_condition and not (trend == 'decreasing') ):
+       lower_trend_than_last_buying and current_price_condition and not (trend == 'decreasing') and not fallback_is_already_bought ):
        return True
     return False
 

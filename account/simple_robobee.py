@@ -36,7 +36,7 @@ def collect_honey():
             print("buying_eth", buying_eth)
             buy_eth(buying_eth, current_stock_price,'buy')
         if action == 'buy_fallback':
-            tradeable_budget=RESERVE-20
+            tradeable_budget=available_eur
             buying_eth = calculate_eth(tradeable_budget, current_stock_price)
             print("tradeable_budget", tradeable_budget)
             print("buying_eth", buying_eth)
