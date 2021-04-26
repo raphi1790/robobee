@@ -135,10 +135,16 @@ def _is_sellable(selling_margin, available_eth, current_stock_price, past_stock_
     last_buying_price = last_buying_transaction['price']
     modified_buying_price=last_buying_price or 10000 # 10000 is just a default value in case of None
     modified_margin = _calculate_selling_margin(last_buying_datetime, selling_margin)
+    print("modified_margin:",modified_margin )
     stock_price_condition= (1+modified_margin)*modified_buying_price < current_stock_price
+    print("stock_price:", current_stock_price)
+    print("modified_buying_price:", modified_buying_price)
+    print("stock_price_condition:", stock_price_condition)
     available_eth_condition=available_eth>=0.03
     fallback_condition_eur = available_eur < 0.1 * reserve
     fallback_condition_price = _is_fallback_sellable(last_buying_transaction, last_fallback_transaction, selling_margin, current_stock_price, available_eth) # calculated amount, where we still make profit;
+    print("fallback_condition_price:", fallback_condition_price)
+    print("fallback_condition_eur:", fallback_condition_eur)
     if ((available_eth_condition and stock_price_condition and not (trend == 'increasing')) or
         (fallback_condition_eur and fallback_condition_price and not (trend == 'increasing'))) :
         return True
