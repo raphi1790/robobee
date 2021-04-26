@@ -120,7 +120,7 @@ def _calculate_selling_margin(last_buying_datetime, selling_margin):
 
 def _is_fallback_sellable(last_buying_transaction, last_fallback_transaction, selling_margin, current_stock_price, available_eth):
     if (last_fallback_transaction['amount'] is None or last_fallback_transaction['price'] is None
-         or last_buying_transaction['amount'] is None or last_buying_transaction['price'] is None) :
+         or last_buying_transaction['amount'] is None or last_buying_transaction['price'] is None or available_eth == 0) :
         return False
     
     fallback_reserve = last_fallback_transaction['amount'] * last_fallback_transaction['price']
