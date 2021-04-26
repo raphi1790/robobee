@@ -135,6 +135,7 @@ def _is_sellable(selling_margin, available_eth, current_stock_price, past_stock_
     last_buying_price = last_buying_transaction['price']
     modified_buying_price=last_buying_price or 10000 # 10000 is just a default value in case of None
     modified_margin = _calculate_selling_margin(last_buying_datetime, selling_margin)
+    print("last_buying_price:",last_buying_price)
     print("modified_margin:",modified_margin )
     stock_price_condition= (1+modified_margin)*modified_buying_price < current_stock_price
     print("stock_price:", current_stock_price)
