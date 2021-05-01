@@ -62,13 +62,14 @@ def _is_above_threshold(current_stock_price,past_stock_prices,margin):
     return len(values_above_threshold)>3
 
 def _upper_threshold_is_satisfied(current_stock_price,past_stock_prices_1d,past_stock_prices_7d_1d, buying_margin):
-    is_above_upper_threshold_1d = _is_above_threshold(current_stock_price,past_stock_prices_1d, buying_margin)
-    is_above_upper_threshold_7d = _is_above_threshold(current_stock_price,past_stock_prices_7d_1d,buying_margin)
-    is_alltime_high = is_above_upper_threshold_1d  and not is_above_upper_threshold_7d
-    print("max_1d",max(past_stock_prices_1d))
-    print("max_7d", max(past_stock_prices_7d_1d))
-    print("is_alltime_high_new",max(past_stock_prices_1d) > 1.03 * max(past_stock_prices_7d_1d) )
-    print("is_alltime_high", is_alltime_high)
+    # is_above_upper_threshold_1d = _is_above_threshold(current_stock_price,past_stock_prices_1d, buying_margin)
+    # is_above_upper_threshold_7d = _is_above_threshold(current_stock_price,past_stock_prices_7d_1d,buying_margin)
+    max_1d = max(past_stock_prices_1d)
+    max_7d_1d =  max(past_stock_prices_7d_1d)
+    is_alltime_high = max_1d > 1.03 * max_7d_1d
+    print("max_1d",max_1d)
+    print("max_7d", max_7d_1d)
+    print("is_alltime_high",is_alltime_high )
     if(is_alltime_high):
         # Increase buying_margin in order to deal with recent alltime-highs
         return _is_above_threshold(current_stock_price,past_stock_prices_1d,1.5*buying_margin)
