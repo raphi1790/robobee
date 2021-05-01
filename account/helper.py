@@ -81,8 +81,8 @@ def _is_buyable(reserve, buying_margin, available_eur,available_eth, current_sto
     buying_power_condition=tradeable_budet>(available_eth*current_stock_price)
     upper_threshold_condition_shorterm = _is_above_threshold(current_stock_price,past_stock_prices_10m,buying_margin)
     upper_threshold_is_satisfied_longterm = _upper_threshold_is_satisfied(current_stock_price,past_stock_prices_1d,past_stock_prices_7d_1d, buying_margin)
-    print("buying condition longterm satisfied": upper_threshold_is_satisfied_longterm )
-    print("buying condition shorterm satisfied": upper_threshold_condition_shorterm )
+    print("buying condition longterm satisfied", upper_threshold_is_satisfied_longterm )
+    print("buying condition shorterm satisfied", upper_threshold_condition_shorterm )
     #if last_selling_datetime is None:
         # no_trade_condition = True
     # else:
