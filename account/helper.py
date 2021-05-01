@@ -65,6 +65,7 @@ def _upper_threshold_is_satisfied(current_stock_price,past_stock_prices_1d,past_
     is_above_upper_threshold_1d = _is_above_threshold(current_stock_price,past_stock_prices_1d, buying_margin)
     is_above_upper_threshold_7d = _is_above_threshold(current_stock_price,past_stock_prices_7d_1d,buying_margin)
     is_alltime_high = is_above_upper_threshold_1d  and not is_above_upper_threshold_7d
+    print("is_alltime_high", is_alltime_high)
     if(is_alltime_high):
         # Increase buying_margin in order to deal with recent alltime-highs
         return _is_above_threshold(current_stock_price,past_stock_prices_1d,1.5*buying_margin)
@@ -80,6 +81,8 @@ def _is_buyable(reserve, buying_margin, available_eur,available_eth, current_sto
     buying_power_condition=tradeable_budet>(available_eth*current_stock_price)
     upper_threshold_condition_shorterm = _is_above_threshold(current_stock_price,past_stock_prices_10m,buying_margin)
     upper_threshold_is_satisfied_longterm = _upper_threshold_is_satisfied(current_stock_price,past_stock_prices_1d,past_stock_prices_7d_1d, buying_margin)
+    print("buying condition longterm satisfied": upper_threshold_is_satisfied_longterm )
+    print("buying condition shorterm satisfied": upper_threshold_condition_shorterm )
     #if last_selling_datetime is None:
         # no_trade_condition = True
     # else:
@@ -136,16 +139,15 @@ def _is_sellable(selling_margin, available_eth, current_stock_price, past_stock_
     modified_buying_price=last_buying_price or 10000 # 10000 is just a default value in case of None
     modified_margin = _calculate_selling_margin(last_buying_datetime, selling_margin)
     print("last_buying_price:",last_buying_price)
-    print("modified_margin:",modified_margin )
+    print("last_buying_date",last_buying_datetime )
+    print("seling_modified_margin:",modified_margin )
     stock_price_condition= (1+modified_margin)*modified_buying_price < current_stock_price
-    print("stock_price:", current_stock_price)
-    print("modified_buying_price:", modified_buying_price)
-    print("stock_price_condition:", stock_price_condition)
+    print("selling_stock_price_condition:", stock_price_condition)
     available_eth_condition=available_eth>=0.03
     fallback_condition_eur = available_eur < 0.1 * reserve
     fallback_condition_price = _is_fallback_sellable(last_buying_transaction, last_fallback_transaction, selling_margin, current_stock_price, available_eth) # calculated amount, where we still make profit;
-    print("fallback_condition_price:", fallback_condition_price)
-    print("fallback_condition_eur:", fallback_condition_eur)
+    print("selling_fallback_condition_price:", fallback_condition_price)
+    print("selling_fallback_condition_eur:", fallback_condition_eur)
     if ((available_eth_condition and stock_price_condition and not (trend == 'increasing')) or
         (fallback_condition_eur and fallback_condition_price and not (trend == 'increasing'))) :
         return True
@@ -163,7 +165,9 @@ def determine_status(available_eur, available_eth, current_stock_price, RESERVE,
     print("is_plausible",is_plausible)
     if is_plausible:
         trend=_determine_trend(past_stock_prices_10m)
+        print("stock_price:", current_stock_price)
         print("trend", trend)
+
         is_buyable = _is_buyable(RESERVE, BUYING_MARGIN, available_eur,available_eth, current_stock_price, past_stock_prices_1d,past_stock_prices_7d_1d, past_stock_prices_10m, last_selling_transaction['time'], trend)
         is_sellable = _is_sellable(SELLING_MARGIN, available_eth, current_stock_price, past_stock_prices_10m, trend, available_eur, RESERVE, last_buying_transaction, last_selling_transaction, last_fallback_transaction)
         buy_fallback = _buy_fallback(last_selling_transaction['time'], last_buying_transaction['time'], last_buying_transaction['price'], available_eth, available_eur, RESERVE,past_stock_prices_1d,past_stock_prices_10m, current_stock_price, trend)
