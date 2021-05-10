@@ -82,6 +82,7 @@ def _is_below_threshold(relevant_stock_price,past_stock_prices,margin):
 
 def _is_buyable(reserve, buying_margin, available_eur,available_eth, current_stock_price, past_stock_prices_1d,past_stock_prices_7d_1d, past_stock_prices_10m, last_selling_datetime, trend):
     tradeable_budet=available_eur-reserve
+    no_eth_condition=available_eth < 0.03
     buying_power_condition=tradeable_budet>(available_eth*current_stock_price)
     upper_threshold_condition_shorterm = _is_above_threshold(current_stock_price,past_stock_prices_10m,buying_margin)
     upper_threshold_is_satisfied_longterm = _upper_threshold_is_satisfied(current_stock_price,past_stock_prices_1d,past_stock_prices_7d_1d, buying_margin)
@@ -93,8 +94,8 @@ def _is_buyable(reserve, buying_margin, available_eur,available_eth, current_sto
         # no_trade_condition = datetime.now() - timedelta(days=1) > last_selling_datetime 
     
     
-    if ((buying_power_condition and upper_threshold_is_satisfied_longterm and not (trend == 'decreasing') ) or
-        (buying_power_condition and trend == 'increasing' and upper_threshold_condition_shorterm) ):
+    if ((no_eth_condition and buying_power_condition and upper_threshold_is_satisfied_longterm and not (trend == 'decreasing') ) or
+        (no_eth_condition and buying_power_condition and trend == 'increasing' and upper_threshold_condition_shorterm) ):
         if (buying_power_condition and upper_threshold_is_satisfied_longterm and not (trend == 'decreasing')):
             print("condition longterm satisfied")
         if (buying_power_condition and trend == 'increasing' and upper_threshold_condition_shorterm):
