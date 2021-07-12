@@ -1,7 +1,10 @@
 import sys
-from api.api import *
-from helper import _determine_trend
+from api.api_v2 import *
 from datetime import datetime, timedelta
+from helper_v2 import *
+import json
+
+
 
 if __name__ == "__main__":
     # content = check_order_status("1340141453066241")
@@ -17,7 +20,19 @@ if __name__ == "__main__":
     # a, b = get_last_transaction_price('sell')
     
     # print(a)
-    trend = None
-    print(not (trend == 'decreasing') )
+    # trend = None
+    # print(not (trend == 'decreasing') )
     # print (a -  timedelta(days=1))
+
+    # person_string = '{"name": "Bob", "age": 25}'
+    # student = Student(**json.loads(person_string))
+    # print(type(student))
+    # print(student.name)
+
+    live_trades= get_eth_eur_values(from_dt_str="now()-10d")
+
+    create_candlesticks(live_trades)
+
+
+
 
