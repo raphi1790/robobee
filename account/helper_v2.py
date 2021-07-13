@@ -6,6 +6,7 @@ import os
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
 
 def create_candlesticks(live_trades, interval='5Min'):
     df = pd.DataFrame.from_records([s.to_dict() for s in live_trades])
@@ -20,5 +21,19 @@ def create_candlesticks(live_trades, interval='5Min'):
     candlestick_df = candlestick_df.merge(openings, on='timestamp_utc' ).merge(closings, on='timestamp_utc')
 
     return candlestick_df
+
+
+def plot_candlestick_chart(df):
+    fig = go.Figure(data=[go.Candlestick(x=df['timestamp_utc'],
+                open=df['open'], high=df['high'],
+                low=df['low'], close=df['close'])
+                     ])
+
+    fig.update_layout(xaxis_rangeslider_visible=False)
+    fig.show()
+
+def calculate_simple_moving_average(df, lookback, column ):
+    df['sma_'+column+'_'+str(lookback)] = df.loc[:,column].rolling(window=lookback).mean()
+    return df
 
     

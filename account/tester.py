@@ -31,7 +31,12 @@ if __name__ == "__main__":
 
     live_trades= get_eth_eur_values(from_dt_str="now()-10d")
 
-    create_candlesticks(live_trades)
+    df = create_candlesticks(live_trades)
+    print("df", df)
+    df_new = calculate_simple_moving_average(df, 10, 'low')
+    df_new = calculate_simple_moving_average(df, 10, 'high')
+    print("df_new", df_new)
+
 
 
 

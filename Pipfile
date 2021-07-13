@@ -8,6 +8,7 @@ websocket-client = "*"
 influxdb = "*"
 python-dotenv = "*"
 pandas = "*"
+plotly = "*"
 
 [dev-packages]
 

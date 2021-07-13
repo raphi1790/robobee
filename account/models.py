@@ -14,13 +14,3 @@ class LiveTrade:
                 'exchange': self.exchange,
                 'price': self.price}
 
-@dataclass
-class Candlestick:
-    open_timestamp_utc: datetime
-    close_timestamp_utc: datetime
-    interval_length_m: int
-    open: float
-    close: float
-    high: float
-    low: float
-
