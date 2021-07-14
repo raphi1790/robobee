@@ -33,9 +33,11 @@ if __name__ == "__main__":
 
     df = create_candlesticks(live_trades)
     print("df", df)
-    df_new = calculate_simple_moving_average(df, 10, 'low')
-    df_new = calculate_simple_moving_average(df, 10, 'high')
+    df_new = add_simple_moving_average_to_df(df, 10, 'low')
+    df_new = add_simple_moving_average_to_df(df, 10, 'high')
     print("df_new", df_new)
+    df_ssl = calculate_ssl_channel(df, 10, 10)
+    print("df_ssl", df_ssl)
 
 
 

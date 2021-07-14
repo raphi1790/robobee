@@ -32,8 +32,19 @@ def plot_candlestick_chart(df):
     fig.update_layout(xaxis_rangeslider_visible=False)
     fig.show()
 
-def calculate_simple_moving_average(df, lookback, column ):
+def add_simple_moving_average_to_df(df, lookback, column ):
     df['sma_'+column+'_'+str(lookback)] = df.loc[:,column].rolling(window=lookback).mean()
     return df
+
+def calculate_ssl_channel(df, lookback_highs, lookback_lows):
+    df = add_simple_moving_average_to_df(df, lookback_highs, 'high' )
+    df = add_simple_moving_average_to_df(df, lookback_lows, 'low' )
+    df['hlv']=df.apply(lambda row: 1 if row['close']>row['sma_'+'high'+'_'+str(lookback_highs)] 
+                        else -1 if row['close']<row['sma_'+'low'+'_'+str(lookback_highs)] else 0 ,axis=1  )
+    df['hlv_prev'] =df['hlv'].shift()
+    df['hlv'] = df.apply(lambda row: row['hlv_prev'] if row['hlv']==0 else row['hlv'], axis=1)
+    df.drop(columns=['hlv_prev'],inplace=True)
+    return df
+    
 
     
