@@ -4,11 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+pandas = "*"
+matplotlib = "*"
+mplfinance = "==0.12.7a17"
 websocket-client = "*"
 influxdb = "*"
 python-dotenv = "*"
-pandas = "*"
-plotly = "*"
+jupyterlab = "*"
 
 [dev-packages]
 

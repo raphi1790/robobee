@@ -44,7 +44,12 @@ def calculate_ssl_channel(df, lookback_highs, lookback_lows):
     df['hlv_prev'] =df['hlv'].shift()
     df['hlv'] = df.apply(lambda row: row['hlv_prev'] if row['hlv']==0 else row['hlv'], axis=1)
     df.drop(columns=['hlv_prev'],inplace=True)
-    return df
+    df['ssl_down'] = df.apply(lambda row: row['sma_'+'high'+'_'+str(lookback_highs)] if row['hlv'] < 0 
+                        else row['sma_'+'low'+'_'+str(lookback_lows)] , axis=1)
+    df['ssl_up'] = df.apply(lambda row: row['sma_'+'low'+'_'+str(lookback_lows)] if row['hlv'] < 0 
+                    else row['sma_'+'high'+'_'+str(lookback_highs)] , axis=1)
     
+    df['trend'] = df.apply(lambda row: 'up' if row['ssl_up'] > row['ssl_down'] else 'down' if row['ssl_down'] > row['ssl_up'] else 'none')
 
-    
+    return df
+ 
