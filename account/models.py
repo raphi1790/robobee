@@ -39,6 +39,19 @@ class Strategy:
         pass
 
 
+@dataclass
+class AccountConnector:
+
+    def get_balance():
+        pass
+
+    def buy_eth(amount, price):
+        pass
+
+    def sell_eth(amount, price):
+        pass
+
+
 
 
 
