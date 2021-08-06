@@ -7,23 +7,17 @@ import sys
 from dotenv import load_dotenv, find_dotenv
 import os
 import ast
-from influxdb import InfluxDBClient
 from urllib.parse import urlencode
 from datetime import datetime
-from models import LiveTrade
+from models import InfluxConnector, LiveTrade
 import json
 
 
-def _connect_influx_db():
-    load_dotenv()
-    user=os.getenv("INFLUX_DB_USER")
-    password=os.getenv("INFLUX_DB_PASSWORD")
-    client = InfluxDBClient('localhost', 8086, user, password, 'pi_influxdb')
-    return client 
-
 
 def get_eth_eur_values(from_dt_str='now() - 1d',to_dt_str='now()', measurement='live_trades' ):
-    client = _connect_influx_db()
+    influx_connector = InfluxConnector()
+    client = influx_connector.get_client()
+    print("influx_client", client)
     query_str = f"SELECT time, exchange, pair, price FROM {measurement} WHERE time >= {from_dt_str} and time <= {to_dt_str} order by time desc"
     result_set = client.query(query_str)
     if len(result_set) > 0:

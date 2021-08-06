@@ -1,17 +1,17 @@
 import time
-from models import Strategy
+from connectors import DummyConnector
+from models import AccountConnector, Strategy
 
 
-def collect_honey(strategy: Strategy):
+def collect_honey(account_connector:AccountConnector):
     while True:
-        action = strategy.get_current_action()
-        if action == 'buy'
-        strategy.buy_sell_option(option)
-
-
+        
+        account_connector.update_balance()
+        print("updated...")
         time.sleep(30)
     
         
 
 if __name__ == "__main__":
-    collect_honey()
+    dummy_connector = DummyConnector()
+    collect_honey(account_connector=dummy_connector)

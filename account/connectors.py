@@ -1,5 +1,7 @@
 from dataclasses import dataclass
-from models import AccountConnector
+
+import pytz
+from models import AccountBalance, AccountConnector, InfluxConnector, Transaction
 from dotenv import load_dotenv
 import os
 import uuid
@@ -14,29 +16,69 @@ from api.api import get_current_eth_eur_value
 
 @dataclass
 class DummyConnector(AccountConnector):
-    eth_available:float=0
-    eur_available:float=500
+    account_balance: AccountBalance
+
+    def __init__(self):
+        self.update_balance()
     
     def get_balance(self):
-        return self.eur_available, self.eth_available
+        return self.account_balance
+
+    def update_balance(self):
+        latest_trade = get_current_eth_eur_value()
+        try: 
+            current_etheur_value = float(latest_trade.price)
+        except Exception as e: 
+            print("Oops!  Something went wrong with fetching the latest live_trades")
+            raise e
+        influx_connector = InfluxConnector()
+        client = influx_connector.get_client()
+        query_str = f"SELECT time, exchange, pair, eth_available,eur_available,balance_total FROM simulator_account_balance  order by time desc limit 1"
+        result_set = client.query(query_str)
+        if len(result_set) > 0:
+            result_points = list(result_set.get_points("simulator_account_balance"))
+            self.account_balance = AccountBalance(timestamp_utc=datetime.utcnow()
+                            ,exchange=result_points[0]['exchange']
+                            ,pair=result_points[0]['pair']
+                            ,eth_available=result_points[0]['eth_available']
+                            ,eur_available=result_points[0]['eur_available']
+                            ,balance_total=current_etheur_value* result_points[0]['eth_available']  + result_points[0]['eur_available']
+            )
+            
+            self._write_account_balance(self.account_balance, connector="simulator")
+
 
     def buy_eth(self,amount,price):
         if not self._valid_transaction_volume(amount,price,'buy'):
             return 
-        self.eth_available += amount
-        self.eur_available -= amount*price
+        self.account_balance.eth_available += amount
+        self.account_balance.eur_available -= amount*price
+        transaction = Transaction(timestamp_utc=datetime.utcnow()
+                        , exchange="Bitstamp", pair="ETH-EUR", amount=float(amount)
+                        , price=float(price)
+                        ,id ='a'
+                        ,type="buy" )
+        self._write_transaction(transaction, connector="simulator")
+        self._write_account_balance(self.account_balance, connector="simulator")
+
     
     def sell_eth(self,amount,price):
         if not self._valid_transaction_volume(amount,price,'sell'):
             return 
-        self.eth_available -= amount
-        self.eur_available += amount*price
-
-
+        self.account_balance.eth_available -= amount
+        self.account_balance.eur_available += amount*price
+        transaction = Transaction(timestamp_utc=datetime.utcnow()
+                        , exchange="Bitstamp", pair="ETH-EUR", amount=float(amount)
+                        , price=float(price)
+                        ,id ='a'
+                        ,type="sell" )
+        self._write_transaction(transaction, connector="simulator")
+        self._write_account_balance(self.account_balance,connector="simulator")
 
 
 @dataclass 
 class BitstampConnector(AccountConnector):
+    account_balance:AccountBalance
 
     @staticmethod
     def _get_api_keys():
@@ -145,7 +187,7 @@ class BitstampConnector(AccountConnector):
         print("content", content)
 
     @staticmethod
-    def check_order_status(order_id):
+    def _check_order_status(order_id):
         client_id, api_key, api_secret = BitstampConnector._get_api_keys()
         nonce, timestamp, content_type = BitstampConnector._get_nonce_timestamp_content_type()
         payload_string = BitstampConnector._get_payload_string('check_order', order_id=order_id, amount=None, price=None )
@@ -293,8 +335,11 @@ class BitstampConnector(AccountConnector):
             raise Exception('Signatures do not match')
         
         return BitstampConnector._prepare_response(r.content)
-        
+    
     def get_balance(self):
+        return self.account_balance
+
+    def update_balance(self):
         client_id, api_key, api_secret = BitstampConnector._get_api_keys()
         nonce, timestamp, content_type = BitstampConnector._get_nonce_timestamp_content_type()
         payload_string = BitstampConnector._get_payload_string('balance', order_id=None, amount=None, price=None)
@@ -327,7 +372,22 @@ class BitstampConnector(AccountConnector):
         
         content_dict = BitstampConnector._prepare_response(r.content)
         if bool(content_dict):
-            return float(content_dict["eur_available"]),float(content_dict['eth_available'])
+            latest_trade = get_current_eth_eur_value()
+            try: 
+                current_etheur_value = latest_trade.price
+            except Exception as e: 
+                print("Oops!  Something went wrong with fetching the latest live_trades")
+                raise e
+
+            self.account_balance=AccountBalance(timestamp_utc=datetime.utcnow()
+                ,pair="ETH-EUR"
+                ,exchange="Bitstamp"
+                ,eth_available=float(content_dict['eth_available'])
+                ,eur_available=float(content_dict["eur_available"])
+                ,balance_total=float(current_etheur_value)*float(content_dict['eth_available']) + float(content_dict["eur_available"])
+            )
+            self._write_account_balance(self.account_balance, connector="bitstamp")
+
 
 
     def buy_eth(self,amount, price):
@@ -368,8 +428,12 @@ class BitstampConnector(AccountConnector):
                         # a subset of the original order is fulfilled
                         cancel_content = BitstampConnector._cancel_order(str(order_id))
                         print("open, limit_content", limit_content)
-                        # write_transaction(tag,limit_content['id'], limit_content['datetime'], 
-                        #         limit_content['price'],limit_content['amount'])
+                        transaction = Transaction(timestamp_utc=datetime.strptime(limit_content['datetime'], "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=pytz.utc)
+                                                , exchange="Bitstamp", pair="ETH-EUR", amount=float(limit_content['amount'])
+                                                , price=float(limit_content['price'])
+                                                ,id =str(limit_content['id'])
+                                                ,type="buy" )
+                        self._write_transaction(transaction, connector="bitstamp")
                         return limit_content
                     else:
                         cancel_content = BitstampConnector._cancel_order(str(order_id))
@@ -378,8 +442,12 @@ class BitstampConnector(AccountConnector):
                     print("finished, limit_content", limit_content)
                     if bool(limit_content['id']):
                         print(limit_content)
-                        # write_transaction(tag,limit_content['id'], limit_content['datetime'], 
-                        #         limit_content['price'],limit_content['amount'])
+                        transaction = Transaction(timestamp_utc=datetime.strptime(limit_content['datetime'], "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=pytz.utc)
+                                                , exchange="Bitstamp", pair="ETH-EUR", amount=float(limit_content['amount'])
+                                                , price=float(limit_content['price'])
+                                                ,id =str(limit_content['id'])
+                                                ,type="buy" )
+                        self._write_transaction(transaction, connector="bitstamp")
                     return limit_content
                 else:
                     cancel_content = BitstampConnector._cancel_order(str(order_id))
@@ -424,8 +492,12 @@ class BitstampConnector(AccountConnector):
                         # a subset of the original order is fulfilled
                         cancel_content = BitstampConnector._cancel_order(str(order_id))
                         print("open, limit_content", limit_content)
-                        # write_transaction('sell',limit_content['id'], limit_content['datetime'], 
-                        #         limit_content['price'],limit_content['amount'])
+                        transaction = Transaction(timestamp_utc=datetime.strptime(limit_content['datetime'], "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=pytz.utc)
+                                                , exchange="Bitstamp", pair="ETH-EUR", amount=float(limit_content['amount'])
+                                                , price=float(limit_content['price'])
+                                                ,id =str(limit_content['id'])
+                                                ,type="sell" )
+                        self._write_transaction(transaction, connector="bitstamp")
                         return limit_content
                     else:
                         cancel_content = BitstampConnector._cancel_order(str(order_id))
@@ -434,8 +506,12 @@ class BitstampConnector(AccountConnector):
                     print("finished, limit_content", limit_content)
                     if bool(limit_content['id']):
                         print(limit_content)
-                        # write_transaction('sell',limit_content['id'], limit_content['datetime'], 
-                        #         limit_content['price'],limit_content['amount'])
+                        transaction = Transaction(timestamp_utc=datetime.strptime(limit_content['datetime'], "%Y-%m-%d %H:%M:%S.%f").replace(tzinfo=pytz.utc)
+                                                , exchange="Bitstamp", pair="ETH-EUR", amount=float(limit_content['amount'])
+                                                , price=float(limit_content['price'])
+                                                ,id =str(limit_content['id'])
+                                                ,type="sell" )
+                        self._write_transaction(transaction, connector="bitstamp")
                     return limit_content
                 else:
                     cancel_content = BitstampConnector._cancel_order(str(order_id))

@@ -5,15 +5,13 @@ from datetime import datetime, timedelta
 import pytz
 import os
 from dotenv import load_dotenv
-from models import LiveTrade, Buffer
+from models import  LiveTrade, Buffer, InfluxConnector
 
 try:
     import thread
 except ImportError:
     import _thread as thread
 import time
-
-
 
 
 
@@ -35,7 +33,7 @@ def _create_influx_connection():
     return client
 
 
-def on_message(ws, message, buffer, influx_client, aggregation_level):
+def on_message(ws, message, buffer, influx_connector, aggregation_level):
     obj = json.loads(message)
     if bool(obj['data']) :
         price = obj['data']['price']
@@ -50,15 +48,15 @@ def on_message(ws, message, buffer, influx_client, aggregation_level):
         buffer_data = buffer.get_data()
         if len(buffer_data) == 1:
             first_buffer_element = buffer_data[0]
-            influx_client.write_points([first_buffer_element.to_influx()])
+            influx_connector.write_point(first_buffer_element.to_influx())
             
             
             
         if len(buffer_data) > 1:
             first_buffer_element = buffer_data[0]
             last_buffer_element = buffer_data[len(buffer_data) -1]
-            influx_client.write_points([first_buffer_element.to_influx()])
-            influx_client.write_points([last_buffer_element.to_influx()])
+            influx_connector.write_point(first_buffer_element.to_influx())
+            influx_connector.write_point(last_buffer_element.to_influx())
             
         buffer.reset_data()
     
@@ -93,11 +91,11 @@ def on_open(ws):
 def discover_flowers(aggregation_level=30):
     websocket.enableTrace(True)
     buffer = Buffer()
-    influx_client = _create_influx_connection()
+    influx_connector = InfluxConnector()
     print("aggregation-level [s]:", aggregation_level)
     ws = websocket.WebSocketApp("wss://ws.bitstamp.net",
                               on_open = on_open,
-                              on_message = lambda ws,msg: on_message(ws,msg,buffer, influx_client, aggregation_level),
+                              on_message = lambda ws,msg: on_message(ws,msg,buffer, influx_connector, aggregation_level),
                               on_error = on_error,
                               on_close = on_close,
                               on_ping=on_ping, 
