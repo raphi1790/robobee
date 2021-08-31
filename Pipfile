@@ -4,6 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+TA-Lib = "*"
 pandas = "*"
 matplotlib = "*"
 mplfinance = "==0.12.7a17"

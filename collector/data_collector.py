@@ -85,6 +85,7 @@ def on_open(ws):
         websocket_request_data_json = json.dumps(websocket_request_data)
         ws.send(websocket_request_data_json)
     thread.start_new_thread(run, ())
+    time.sleep(0.01)
     print("websocket-connection established.")
 
 
