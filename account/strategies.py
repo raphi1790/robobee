@@ -71,7 +71,6 @@ class SimpleStrategy(Strategy):
         else: 
             return False
 
-
     def _take_profit(df):
         last_relevant_record = df[-2:-1]
         if (last_relevant_record['ema_20'].values[0] > last_relevant_record['ema_10'].values[0]):
@@ -79,7 +78,6 @@ class SimpleStrategy(Strategy):
         else:
             False
     
-
     def _stop_loss(df, last_transaction:Transaction ):
         last_relevant_record = df[-2:-1]
         if last_transaction.price > last_relevant_record['close'].values[0]*1.0025:
@@ -96,21 +94,19 @@ class SimpleStrategy(Strategy):
         print("current eth-eur-value:", current_eth_eur_value)
         last_transaction = connector.get_last_transaction()
         status = SimpleStrategy._get_current_status(last_transaction)
-        print("last relevant close-value", last_relevant_close_value)
+        print("last relevant close-value")
         if status == 'in':
             print("in-trade")
-
             if SimpleStrategy._take_profit(data):
                 print("take-profit")
                 print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
-
                 tradeable_eth = connector.tradeable_eth()
-                connector.sell_eth(tradeable_eth, last_relevant_close_value)
+                connector.sell_eth(tradeable_eth, current_eth_eur_value)
             elif SimpleStrategy._stop_loss(data, last_transaction):
                 print("stop-loss")
                 print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
                 tradeable_eth = connector.tradeable_eth()
-                connector.sell_eth(tradeable_eth, last_relevant_close_value)
+                connector.sell_eth(tradeable_eth, current_eth_eur_value)
             else: 
                 pass 
         if status == 'out':
@@ -118,8 +114,8 @@ class SimpleStrategy(Strategy):
             if SimpleStrategy._entry_signal(data):
                 print("enter trade")
                 print("ema_10:", data[-3:-2]['ema_10'].values[0], "ema_20:", data[-3:-2]['ema_20'].values[0])
-                eth_to_buy = calculate_eth(connector.tradeable_eur(),last_relevant_close_value)
-                connector.buy_eth(eth_to_buy, last_relevant_close_value)
+                eth_to_buy = calculate_eth(connector.tradeable_eur(),current_eth_eur_value)
+                connector.buy_eth(eth_to_buy, current_eth_eur_value)
         
         return data
         
