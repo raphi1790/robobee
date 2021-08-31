@@ -71,17 +71,18 @@ class SimpleStrategy(Strategy):
         else: 
             return False
 
-    def _take_profit(df, last_transaction, current_eth_eur_value):
+
+    def _take_profit(df):
         last_relevant_record = df[-2:-1]
-        if (last_relevant_record['ema_20'].values[0] > last_relevant_record['ema_10'].values[0] 
-            and last_transaction['price']*1.005 > current_eth_eur_value ):
+        if (last_relevant_record['ema_20'].values[0] > last_relevant_record['ema_10'].values[0]):
             return True
         else:
             False
     
-    def _stop_loss(df, last_transaction ):
+
+    def _stop_loss(df, last_transaction:Transaction ):
         last_relevant_record = df[-2:-1]
-        if last_transaction['price'] > last_relevant_record['close'].values[0]*1.0025:
+        if last_transaction.price > last_relevant_record['close'].values[0]*1.0025:
             return True
         else:
             False
@@ -96,14 +97,16 @@ class SimpleStrategy(Strategy):
 
         if status == 'in':
             print("in-trade")
-            if SimpleStrategy._take_profit(data, last_transaction,current_eth_eur_value):
+
+            if SimpleStrategy._take_profit(data):
                 print("take-profit")
-                print("last buying price:",last_transaction['price'], ",current eth-eur-value:",current_eth_eur_value)
+                print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
+
                 tradeable_eth = connector.tradeable_eth()
                 connector.sell_eth(tradeable_eth, current_eth_eur_value)
             elif SimpleStrategy._stop_loss(data, last_transaction):
                 print("stop-loss")
-                print("last buying price:",last_transaction['price'], ",current eth-eur-value:",current_eth_eur_value)
+                print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
                 tradeable_eth = connector.tradeable_eth()
                 connector.sell_eth(tradeable_eth, current_eth_eur_value)
             else: 
