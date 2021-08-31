@@ -1,6 +1,7 @@
-
 .vscode/settings.json
 *.pyc
 .vscode/.ropeproject/objectdb
 .vscode/.ropeproject/config.py
 .env
+ta-lib/*
+ta-lib-0.4.0-src.tar.gz

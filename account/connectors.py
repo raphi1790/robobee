@@ -18,11 +18,20 @@ from api.api import get_current_eth_eur_value
 class DummyConnector(AccountConnector):
     account_balance: AccountBalance
 
+
     def __init__(self):
         self.update_balance()
+        self.eth_reserve = float(os.getenv('RESERVE_ETH'))
+        self.eur_reserve = float(os.getenv('RESERVE_EUR'))
     
     def get_balance(self):
         return self.account_balance
+    
+    def tradeable_eth(self):
+        return super().tradeable_eth()
+    
+    def tradeable_eur(self):
+        return super().tradeable_eur()
 
     def update_balance(self):
         latest_trade = get_current_eth_eur_value()
@@ -51,8 +60,12 @@ class DummyConnector(AccountConnector):
     def buy_eth(self,amount,price):
         if not self._valid_transaction_volume(amount,price,'buy'):
             return 
-        self.account_balance.eth_available += amount
-        self.account_balance.eur_available -= amount*price
+        eur = amount*price
+        fee = eur-eur/1.005
+        available_eur = eur/1.005
+        new_eth = available_eur/price
+        self.account_balance.eth_available += new_eth
+        self.account_balance.eur_available -= eur
         transaction = Transaction(timestamp_utc=datetime.utcnow()
                         , exchange="Bitstamp", pair="ETH-EUR", amount=float(amount)
                         , price=float(price)
@@ -65,8 +78,9 @@ class DummyConnector(AccountConnector):
     def sell_eth(self,amount,price):
         if not self._valid_transaction_volume(amount,price,'sell'):
             return 
+        new_eur = amount*price/1.005
         self.account_balance.eth_available -= amount
-        self.account_balance.eur_available += amount*price
+        self.account_balance.eur_available += new_eur
         transaction = Transaction(timestamp_utc=datetime.utcnow()
                         , exchange="Bitstamp", pair="ETH-EUR", amount=float(amount)
                         , price=float(price)
@@ -76,9 +90,19 @@ class DummyConnector(AccountConnector):
         self._write_account_balance(self.account_balance,connector="simulator")
 
 
+    def get_last_transaction(self, **kwargs):
+        transaction = super(DummyConnector, self).get_last_transaction(connector="simulator", **kwargs )
+        return transaction
+
+
 @dataclass 
 class BitstampConnector(AccountConnector):
     account_balance:AccountBalance
+
+    def __init__(self):
+        self.update_balance()
+        self.eth_reserve = float(os.getenv('RESERVE_ETH'))
+        self.eur_reserve = float(os.getenv('RESERVE_EUR'))
 
     @staticmethod
     def _get_api_keys():
@@ -338,6 +362,12 @@ class BitstampConnector(AccountConnector):
     
     def get_balance(self):
         return self.account_balance
+    
+    def tradeable_eth(self):
+        return super().tradeable_eth()
+    
+    def tradeable_eur(self):
+        return super().tradeable_eur()
 
     def update_balance(self):
         client_id, api_key, api_secret = BitstampConnector._get_api_keys()
@@ -519,3 +549,7 @@ class BitstampConnector(AccountConnector):
             except ValueError:
                 print("Oops!  Something went wrong with selling ETH")
         return None
+
+    def get_last_transaction(self, **kwargs):
+        transaction = super(BitstampConnector, self).get_last_transaction(connector="bitstamp", **kwargs)
+        return transaction

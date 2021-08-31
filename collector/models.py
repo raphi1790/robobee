@@ -23,7 +23,7 @@ class LiveTrade:
                         },
                         "time": str(self.timestamp_utc),
                         "fields": {
-                            "price": self.price 
+                            "price": float(self.price) 
                         }
                     }
 
