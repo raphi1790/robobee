@@ -27,7 +27,7 @@ class SimpleStrategy(Strategy):
     name:str = "simple_strategy"
 
     def _collect_data():
-        live_trades= api.get_eth_eur_values(from_dt_str="now()-1d")
+        live_trades= api.get_eth_eur_values(from_dt_str="now()- 1d")
         candlestick_5m = create_candlesticks(live_trades, interval='5Min')
         candlestick_5m['engulfing'] = talib.CDLENGULFING(candlestick_5m['open'],candlestick_5m['high'], candlestick_5m['low'], candlestick_5m['close'])
         candlestick_5m['ema_10'] = talib.EMA( candlestick_5m['close'],10)
