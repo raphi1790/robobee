@@ -1,4 +1,4 @@
-from influxdb import InfluxDBClient
+
 from data_collector import discover_flowers
 
 if __name__ == "__main__":

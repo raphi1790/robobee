@@ -5,32 +5,14 @@ from datetime import datetime, timedelta
 import pytz
 import os
 from dotenv import load_dotenv
+from models import  LiveTrade, Buffer, InfluxConnector
+
 try:
     import thread
 except ImportError:
     import _thread as thread
 import time
 
-
-class Buffer:
-    data=[]
-
-    def __init__(self):
-        self.data=[]
-    def append(self, element):
-        self.data.append(element)
-    def get_data(self):
-        return self.data
-    def reset_data(self):
-        self.data = []
-    def get_time_difference(self):
-        if len(self.data)==0:
-            return 0
-        first_element = self.data[0]
-        last_element = self.data[len(self.data)-1]
-        ts_firs_element = first_element['timestamp']
-        ts_last_element = last_element['timestamp']
-        return (ts_last_element-ts_firs_element).seconds
 
 
 
@@ -51,69 +33,30 @@ def _create_influx_connection():
     return client
 
 
-def on_message(ws, message, buffer, influx_client, aggregation_level):
+def on_message(ws, message, buffer, influx_connector, aggregation_level):
     obj = json.loads(message)
     if bool(obj['data']) :
         price = obj['data']['price']
         timestamp = obj['data']['timestamp']
         utc_timestamp = datetime.fromtimestamp(int(timestamp)).astimezone(pytz.utc)
-        buffer.append({'timestamp': utc_timestamp, 'price': price})
+        current_trade = LiveTrade(utc_timestamp, pair="ETH-EUR", exchange="Bitstamp", price=price)
+        buffer.append(current_trade)
+
     
     time_difference_buffer = buffer.get_time_difference()
     if time_difference_buffer > aggregation_level:
         buffer_data = buffer.get_data()
         if len(buffer_data) == 1:
             first_buffer_element = buffer_data[0]
-            start_point = [
-                    {
-                        "measurement": "ethereum_price",
-                        "tags": {
-                            "currency": "EUR",
-                            "exchange": "Bitstamp"
-                        
-                        },
-                        "time": first_buffer_element['timestamp'],
-                        "fields": {
-                            "value": first_buffer_element['price']
-                        }
-                    }
-            ]
-            influx_client.write_points(start_point)
+            influx_connector.write_point(first_buffer_element.to_influx())
+            
             
             
         if len(buffer_data) > 1:
             first_buffer_element = buffer_data[0]
             last_buffer_element = buffer_data[len(buffer_data) -1]
-            start_point = [
-                    {
-                        "measurement": "ethereum_price",
-                        "tags": {
-                            "currency": "EUR",
-                            "exchange": "Bitstamp"
-                        
-                        },
-                        "time": first_buffer_element['timestamp'],
-                        "fields": {
-                            "value": first_buffer_element['price']
-                        }
-                    }
-            ]
-            end_point =  [
-                    {
-                        "measurement": "ethereum_price",
-                        "tags": {
-                            "currency": "EUR",
-                            "exchange": "Bitstamp"
-                        
-                        },
-                        "time": last_buffer_element['timestamp'],
-                        "fields": {
-                            "value": last_buffer_element['price']
-                        }
-                    }
-            ]
-            influx_client.write_points(start_point)
-            influx_client.write_points(end_point)
+            influx_connector.write_point(first_buffer_element.to_influx())
+            influx_connector.write_point(last_buffer_element.to_influx())
             
         buffer.reset_data()
     
@@ -142,17 +85,18 @@ def on_open(ws):
         websocket_request_data_json = json.dumps(websocket_request_data)
         ws.send(websocket_request_data_json)
     thread.start_new_thread(run, ())
+    time.sleep(0.01)
     print("websocket-connection established.")
 
 
 def discover_flowers(aggregation_level=30):
     websocket.enableTrace(True)
     buffer = Buffer()
-    influx_client = _create_influx_connection()
+    influx_connector = InfluxConnector()
     print("aggregation-level [s]:", aggregation_level)
     ws = websocket.WebSocketApp("wss://ws.bitstamp.net",
                               on_open = on_open,
-                              on_message = lambda ws,msg: on_message(ws,msg,buffer, influx_client, aggregation_level),
+                              on_message = lambda ws,msg: on_message(ws,msg,buffer, influx_connector, aggregation_level),
                               on_error = on_error,
                               on_close = on_close,
                               on_ping=on_ping, 
