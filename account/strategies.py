@@ -90,11 +90,13 @@ class SimpleStrategy(Strategy):
     
     def apply(self, connector: AccountConnector):
         data = SimpleStrategy._collect_data()
+        last_relevant_record = data[-2:-1]
+        last_relevant_close_value = last_relevant_record['close'].values[0]
         current_eth_eur_value = getattr(api.get_current_eth_eur_value(),'price')
         print("current eth-eur-value:", current_eth_eur_value)
         last_transaction = connector.get_last_transaction()
         status = SimpleStrategy._get_current_status(last_transaction)
-
+        print("last relevant close-value", last_relevant_close_value)
         if status == 'in':
             print("in-trade")
 
@@ -103,21 +105,21 @@ class SimpleStrategy(Strategy):
                 print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
 
                 tradeable_eth = connector.tradeable_eth()
-                connector.sell_eth(tradeable_eth, current_eth_eur_value)
+                connector.sell_eth(tradeable_eth, last_relevant_close_value)
             elif SimpleStrategy._stop_loss(data, last_transaction):
                 print("stop-loss")
                 print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
                 tradeable_eth = connector.tradeable_eth()
-                connector.sell_eth(tradeable_eth, current_eth_eur_value)
+                connector.sell_eth(tradeable_eth, last_relevant_close_value)
             else: 
                 pass 
         if status == 'out':
             print("out-trade")
             if SimpleStrategy._entry_signal(data):
                 print("enter trade")
-                print("ema_10:", data[-3:-2]['ema_10'], "ema_20:", data[-3:-2]['ema_20'])
-                eth_to_buy = calculate_eth(connector.tradeable_eur(),current_eth_eur_value)
-                connector.buy_eth(eth_to_buy, current_eth_eur_value)
+                print("ema_10:", data[-3:-2]['ema_10'].values[0], "ema_20:", data[-3:-2]['ema_20'].values[0])
+                eth_to_buy = calculate_eth(connector.tradeable_eur(),last_relevant_close_value)
+                connector.buy_eth(eth_to_buy, last_relevant_close_value)
         
         return data
         
