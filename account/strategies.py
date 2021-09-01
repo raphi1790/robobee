@@ -59,15 +59,17 @@ class SimpleStrategy(Strategy):
         else:
             return False
 
-    def _is_bullish_trend(df):
+    def _bullish_trend_just_started(df):
         last_relevant_record = df[-2:-1]
-        if last_relevant_record['ema_10'].values[0]>last_relevant_record['ema_20'].values[0]:
+        intersection_record = df[-5:-4]
+        if (last_relevant_record['ema_10'].values[0]>last_relevant_record['ema_20'].values[0] and
+               intersection_record['ema_20'].values[0]>intersection_record['ema_10'].values[0] ):
             return True
         else:
             return False
 
     def _entry_signal(df):
-        if SimpleStrategy._is_bullish_engulfing_pattern(df) and SimpleStrategy._is_bullish_trend(df):
+        if SimpleStrategy._is_bullish_engulfing_pattern(df) and SimpleStrategy._bullish_trend_just_started(df):
             return True
         else: 
             return False
