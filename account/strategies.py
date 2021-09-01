@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from math import inf
 from models import AccountConnector, Strategy, Transaction
 import api.api as api
 from helper import *
@@ -58,15 +59,17 @@ class SimpleStrategy(Strategy):
         else:
             return False
 
-    def _is_bullish_trend(df):
+    def _bullish_trend_just_started(df):
         last_relevant_record = df[-2:-1]
-        if last_relevant_record['ema_10'].values[0]>last_relevant_record['ema_20'].values[0]:
+        intersection_record = df[-5:-4]
+        if (last_relevant_record['ema_10'].values[0]>last_relevant_record['ema_20'].values[0] and
+               intersection_record['ema_20'].values[0]>intersection_record['ema_10'].values[0] ):
             return True
         else:
             return False
 
     def _entry_signal(df):
-        if SimpleStrategy._is_bullish_engulfing_pattern(df) and SimpleStrategy._is_bullish_trend(df):
+        if SimpleStrategy._is_bullish_engulfing_pattern(df) and SimpleStrategy._bullish_trend_just_started(df):
             return True
         else: 
             return False
@@ -78,15 +81,16 @@ class SimpleStrategy(Strategy):
         else:
             False
     
-    def _stop_loss(df, last_transaction:Transaction ):
+    def _stop_loss(df, lower_bound ):
         last_relevant_record = df[-2:-1]
-        if last_transaction.price > last_relevant_record['close'].values[0]*1.0025:
+        if lower_bound > last_relevant_record['close'].values[0]:
             return True
         else:
             False
 
     
     def apply(self, connector: AccountConnector):
+        lower_bound = float(-inf)
         data = SimpleStrategy._collect_data()
         last_relevant_record = data[-2:-1]
         last_relevant_close_value = last_relevant_record['close'].values[0]
@@ -97,12 +101,15 @@ class SimpleStrategy(Strategy):
         print("last relevant close-value")
         if status == 'in':
             print("in-trade")
+            if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
+                lower_bound = current_eth_eur_value
+            print("lower_bound", lower_bound)
             if SimpleStrategy._take_profit(data):
                 print("take-profit")
                 print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
                 tradeable_eth = connector.tradeable_eth()
                 connector.sell_eth(tradeable_eth, current_eth_eur_value)
-            elif SimpleStrategy._stop_loss(data, last_transaction):
+            elif SimpleStrategy._stop_loss(data, lower_bound):
                 print("stop-loss")
                 print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
                 tradeable_eth = connector.tradeable_eth()
