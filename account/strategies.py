@@ -59,15 +59,17 @@ class SimpleStrategy(Strategy):
         else:
             return False
 
-    def _is_bullish_trend(df):
+    def _bullish_trend_just_started(df):
         last_relevant_record = df[-2:-1]
-        if last_relevant_record['ema_10'].values[0]>last_relevant_record['ema_20'].values[0]:
+        intersection_record = df[-5:-4]
+        if (last_relevant_record['ema_10'].values[0]>last_relevant_record['ema_20'].values[0] and
+               intersection_record['ema_20'].values[0]>intersection_record['ema_10'].values[0] ):
             return True
         else:
             return False
 
     def _entry_signal(df):
-        if SimpleStrategy._is_bullish_engulfing_pattern(df) and SimpleStrategy._is_bullish_trend(df):
+        if SimpleStrategy._is_bullish_engulfing_pattern(df) and SimpleStrategy._bullish_trend_just_started(df):
             return True
         else: 
             return False
@@ -96,7 +98,7 @@ class SimpleStrategy(Strategy):
         print("current eth-eur-value:", current_eth_eur_value)
         last_transaction = connector.get_last_transaction()
         status = SimpleStrategy._get_current_status(last_transaction)
-        print("last relevant close-value")
+        print("last relevant close-value", last_relevant_close_value)
         if status == 'in':
             print("in-trade")
             if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
