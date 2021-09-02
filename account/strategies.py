@@ -98,7 +98,7 @@ class SimpleStrategy(Strategy):
         print("current eth-eur-value:", current_eth_eur_value)
         last_transaction = connector.get_last_transaction()
         status = SimpleStrategy._get_current_status(last_transaction)
-        print("last relevant close-value")
+        print("last relevant close-value", last_relevant_close_value)
         if status == 'in':
             print("in-trade")
             if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
