@@ -22,18 +22,25 @@ The following steps have to be executed in order to run the code on a Raspberry 
    API_KEY=<Bitstamp.net api-key>
    API_SECRET=<Bitstamp.net api-secret>
    CLIENT_ID=<Bitstamp.net client-id>
-   RESERVE=<Budget, which shouldn't be touched>
-   FEE=0.005
-   BUYING_MARGIN=0.02
-   SELLING_MARGIN=0.02
+   RESERVE_EUR=<Budget, which shouldn't be touched>
+   RESERVE_ETH=<amount of ETH, which shouldn't be touched>
    ```
-8. Create a pipenv-environment using `pipenv install` on root directory
-9. Create some nice charts on Grafana
+8. Install TA-Lib library in project root directory following this tutorial https://sachsenhofer.io/install-ta-lib-ubuntu-server/
+9. Create a pipenv-environment using `pipenv install` on root directory
+10. Create some nice charts on Grafana
+
+
+## Configuration
+The project comes with two connectors; a DummyConnector and a BitstampConnector. The DummyConnector can be used to test strategies, whereas the BitstampConnector actually trades the coins on the exchange. The appropriate connector can be set in in file *account/robobee.py*.
+
+Moreover, it's easy to come up with new trading strategies. You just have to follow the corresponding model-class in order to write your own strategy. In case you want to test it, please change the value in file *account/robobee.py*.
 
 ## Running Code
 After setup, we're good to go: 
 1. Verify docker-containers for Influx-DB and Grafana are running (`docker ps -a`)
 2. Open terminal and start pipenv-environment and run data_collector (`python3 collector/main.py`)
-3. Open terminal and start pipenv-environment and run account-monitoring (`python3 account/account_manager.py`)
-4. Open terminal and start pipenv-environment and run actually trading-bot (`python3 account/simple_robobee.py`)
+3. Open terminal and start pipenv-environment and run robobee (`python3 account/robobee.py`)
+
+
+
 
