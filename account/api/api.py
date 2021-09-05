@@ -23,7 +23,7 @@ def get_eth_eur_values(from_dt_str='now()- 1d',to_dt_str='now()', measurement='l
         return None
 
 def get_current_eth_eur_value():
-    live_trades = get_eth_eur_values(from_dt_str='now()- 5m', to_dt_str='now()',measurement='live_trades')
+    live_trades = get_eth_eur_values(from_dt_str='now()- 15m', to_dt_str='now()',measurement='live_trades')
     if len(live_trades)>0:
         return live_trades[-1]
     else:
