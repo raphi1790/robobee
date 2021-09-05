@@ -126,4 +126,99 @@ class SimpleStrategy(Strategy):
                 connector.buy_eth(eth_to_buy, current_eth_eur_value)
         
         return data
+
+@dataclass
+class EmaStrategy(Strategy):
+    name:str = "3_5_8_strategy"
+
+    def _collect_data():
+        live_trades= api.get_eth_eur_values(from_dt_str="now()- 1d")
+        candlestick_5m = create_candlesticks(live_trades, interval='5Min')
+        candlestick_5m['engulfing'] = talib.CDLENGULFING(candlestick_5m['open'],candlestick_5m['high'], candlestick_5m['low'], candlestick_5m['close'])
+        candlestick_5m['ema_3'] = talib.EMA( candlestick_5m['close'],3)
+        candlestick_5m['ema_6'] = talib.EMA( candlestick_5m['close'],6)
+        candlestick_5m['ema_9'] = talib.EMA( candlestick_5m['close'],9)
+        print("ema_3:",candlestick_5m[-2:-1]['ema_3'].values[0],"ema_6:",candlestick_5m[-2:-1]['ema_6'].values[0],"ema_9:",candlestick_5m[-2:-1]['ema_9'].values[0])
+        return candlestick_5m
+
+
+    def _get_current_status(last_transaction: Transaction):   
+        if last_transaction.type == 'buy':
+            return 'in'
+        else:
+            return 'out'
+    
+    def _bullish_trend_just_started(df):
+        last_relevant_record = df[-2:-1]
+        intersection_record = df[-3:-2]
+        if (last_relevant_record['ema_3'].values[0]>last_relevant_record['ema_6'].values[0] and 
+            last_relevant_record['ema_3'].values[0]>last_relevant_record['ema_9'].values[0] and 
+            (intersection_record['ema_3'].values[0]<intersection_record['ema_6'].values[0] and
+               intersection_record['ema_3'].values[0]<intersection_record['ema_9'].values[0] ) ):
+            return True
+        else:
+            return False
+
+    def _entry_signal(df):
+        if EmaStrategy._bullish_trend_just_started(df):
+            return True
+        else: 
+            return False
+
+    def _take_profit(df, last_transaction:Transaction, current_eth_eur_value):
+        last_relevant_record = df[-2:-1]
+        if (last_relevant_record['ema_3'].values[0]<last_relevant_record['ema_6'].values[0] and 
+            last_relevant_record['ema_3'].values[0]<last_relevant_record['ema_9'].values[0] and 
+            current_eth_eur_value > last_transaction.price * 1.01 ):
+            return True
+        else:
+            False
+    
+    def _stop_loss(df, lower_bound ):
+        last_relevant_record = df[-2:-1]
+        if lower_bound > last_relevant_record['close'].values[0]:
+            return True
+        else:
+            False
+
+    
+    def apply(self, connector: AccountConnector):
+        lower_bound = float(-inf)
+        data = EmaStrategy._collect_data()
+        last_relevant_record = data[-2:-1]
+        last_relevant_close_value = last_relevant_record['close'].values[0]
+        current_eth_eur_value = getattr(api.get_current_eth_eur_value(),'price')
+        print("current eth-eur-value:", current_eth_eur_value)
+        last_transaction = connector.get_last_transaction()
+        status = EmaStrategy._get_current_status(last_transaction)
+        print("last relevant close-value", last_relevant_close_value)
+        print("ema_3:",data[-3:-2]['ema_3'].values[0],"ema_6:",data[-3:-2]['ema_6'].values[0],"ema_9:",data[-3:-2]['ema_9'].values[0])
+        print("ema_3:",data[-2:-1]['ema_3'].values[0],"ema_6:",data[-2:-1]['ema_6'].values[0],"ema_9:",data[-2:-1]['ema_9'].values[0])
+        print("data.tail", data.tail())
+        if status == 'in':
+            print("in-trade")
+            lower_bound = last_transaction.price/1.0025
+            print("lower_bound", lower_bound)
+            # if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
+            #     lower_bound = current_eth_eur_value
+            if EmaStrategy._take_profit(data, last_transaction, current_eth_eur_value):
+                print("take-profit")
+                print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
+                tradeable_eth = connector.tradeable_eth()
+                connector.sell_eth(tradeable_eth, current_eth_eur_value)
+            elif EmaStrategy._stop_loss(data, lower_bound):
+                print("stop-loss")
+                print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
+                tradeable_eth = connector.tradeable_eth()
+                connector.sell_eth(tradeable_eth, current_eth_eur_value)
+            else: 
+                pass 
+        if status == 'out':
+            print("out-trade")
+            if EmaStrategy._entry_signal(data):
+                print("enter trade")
+                eth_to_buy = calculate_eth(connector.tradeable_eur(),current_eth_eur_value)
+                connector.buy_eth(eth_to_buy, current_eth_eur_value)
+        
+        return data
         
