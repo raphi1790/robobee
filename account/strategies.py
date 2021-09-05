@@ -196,6 +196,7 @@ class EmaStrategy(Strategy):
         print("last relevant close-value", last_relevant_close_value)
         print("timestamp_utc:", data[-3:-2]['timestamp_utc'].values[0], "ema_3:",data[-3:-2]['ema_3'].values[0],"ema_6:",data[-3:-2]['ema_6'].values[0],"ema_9:",data[-3:-2]['ema_9'].values[0])
         print("timestamp_utc:", data[-2:-1]['timestamp_utc'].values[0], "ema_3:",data[-2:-1]['ema_3'].values[0],"ema_6:",data[-2:-1]['ema_6'].values[0],"ema_9:",data[-2:-1]['ema_9'].values[0])
+
         if status == 'in':
             print("in-trade")
             lower_bound = last_transaction.price/1.0025
