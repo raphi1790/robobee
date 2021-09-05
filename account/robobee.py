@@ -1,7 +1,7 @@
 import time
 from connectors import DummyConnector
 from models import AccountConnector, Strategy
-from strategies import SimpleStrategy
+from strategies import SimpleStrategy, EmaStrategy
 
 
 def collect_honey(account_connector:AccountConnector, strategy: Strategy):
@@ -18,4 +18,5 @@ def collect_honey(account_connector:AccountConnector, strategy: Strategy):
 if __name__ == "__main__":
     dummy_connector = DummyConnector()
     simple_strategy = SimpleStrategy()
-    collect_honey(account_connector=dummy_connector, strategy=simple_strategy)
+    ema_strategy = EmaStrategy()
+    collect_honey(account_connector=dummy_connector, strategy=ema_strategy)
