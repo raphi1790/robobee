@@ -136,6 +136,7 @@ class EmaStrategy(Strategy):
         candlestick_5m = create_candlesticks(live_trades, interval='5Min')
         candlestick_5m['engulfing'] = talib.CDLENGULFING(candlestick_5m['open'],candlestick_5m['high'], candlestick_5m['low'], candlestick_5m['close'])
         candlestick_5m['ema_3'] = talib.EMA( candlestick_5m['close'],3)
+
         candlestick_5m['ema_6'] = talib.EMA( candlestick_5m['close'],6)
         candlestick_5m['ema_9'] = talib.EMA( candlestick_5m['close'],9)
         print("ema_3:",candlestick_5m[-2:-1]['ema_3'].values[0],"ema_6:",candlestick_5m[-2:-1]['ema_6'].values[0],"ema_9:",candlestick_5m[-2:-1]['ema_9'].values[0])
@@ -151,6 +152,7 @@ class EmaStrategy(Strategy):
     def _bullish_trend_just_started(df):
         last_relevant_record = df[-2:-1]
         intersection_record = df[-3:-2]
+
         if (last_relevant_record['ema_3'].values[0]>last_relevant_record['ema_6'].values[0] and 
             last_relevant_record['ema_3'].values[0]>last_relevant_record['ema_9'].values[0] and 
             (intersection_record['ema_3'].values[0]<intersection_record['ema_6'].values[0] and
@@ -192,9 +194,8 @@ class EmaStrategy(Strategy):
         last_transaction = connector.get_last_transaction()
         status = EmaStrategy._get_current_status(last_transaction)
         print("last relevant close-value", last_relevant_close_value)
-        print("ema_3:",data[-3:-2]['ema_3'].values[0],"ema_6:",data[-3:-2]['ema_6'].values[0],"ema_9:",data[-3:-2]['ema_9'].values[0])
-        print("ema_3:",data[-2:-1]['ema_3'].values[0],"ema_6:",data[-2:-1]['ema_6'].values[0],"ema_9:",data[-2:-1]['ema_9'].values[0])
-        print("data.tail", data.tail())
+        print("timestamp_utc:", data[-3:-2]['timestamp_utc'].values[0], "ema_3:",data[-3:-2]['ema_3'].values[0],"ema_6:",data[-3:-2]['ema_6'].values[0],"ema_9:",data[-3:-2]['ema_9'].values[0])
+        print("timestamp_utc:", data[-2:-1]['timestamp_utc'].values[0], "ema_3:",data[-2:-1]['ema_3'].values[0],"ema_6:",data[-2:-1]['ema_6'].values[0],"ema_9:",data[-2:-1]['ema_9'].values[0])
         if status == 'in':
             print("in-trade")
             lower_bound = last_transaction.price/1.0025
