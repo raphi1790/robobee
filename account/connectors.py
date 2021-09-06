@@ -23,6 +23,7 @@ class DummyConnector(AccountConnector):
         self.update_balance()
         self.eth_reserve = float(os.getenv('RESERVE_ETH'))
         self.eur_reserve = float(os.getenv('RESERVE_EUR'))
+        self.fee = float(os.getenv("DUMMY_CONNECTOR_FEE"))
     
     def get_balance(self):
         return self.account_balance
@@ -61,8 +62,7 @@ class DummyConnector(AccountConnector):
         if not self._valid_transaction_volume(amount,price,'buy'):
             return 
         eur = amount*price
-        fee = eur-eur/1.005
-        available_eur = eur/1.005
+        available_eur = eur/(1+self.fee)
         new_eth = available_eur/price
         self.account_balance.eth_available += new_eth
         self.account_balance.eur_available -= eur
@@ -78,7 +78,7 @@ class DummyConnector(AccountConnector):
     def sell_eth(self,amount,price):
         if not self._valid_transaction_volume(amount,price,'sell'):
             return 
-        new_eur = amount*price/1.005
+        new_eur = amount*price/(1+self.fee)
         self.account_balance.eth_available -= amount
         self.account_balance.eur_available += new_eur
         transaction = Transaction(timestamp_utc=datetime.utcnow()
@@ -103,6 +103,7 @@ class BitstampConnector(AccountConnector):
         self.update_balance()
         self.eth_reserve = float(os.getenv('RESERVE_ETH'))
         self.eur_reserve = float(os.getenv('RESERVE_EUR'))
+        self.fee = float(os.getenv("BITSTAMP_CONNECTOR_FEE"))
 
     @staticmethod
     def _get_api_keys():

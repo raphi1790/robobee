@@ -139,7 +139,6 @@ class EmaStrategy(Strategy):
 
         candlestick_5m['ema_6'] = talib.EMA( candlestick_5m['close'],6)
         candlestick_5m['ema_9'] = talib.EMA( candlestick_5m['close'],9)
-        print("ema_3:",candlestick_5m[-2:-1]['ema_3'].values[0],"ema_6:",candlestick_5m[-2:-1]['ema_6'].values[0],"ema_9:",candlestick_5m[-2:-1]['ema_9'].values[0])
         return candlestick_5m
 
 
@@ -169,9 +168,8 @@ class EmaStrategy(Strategy):
 
     def _take_profit(df, last_transaction:Transaction, current_eth_eur_value):
         last_relevant_record = df[-2:-1]
-        if (last_relevant_record['ema_3'].values[0]<last_relevant_record['ema_6'].values[0] and 
-            last_relevant_record['ema_3'].values[0]<last_relevant_record['ema_9'].values[0] and 
-            current_eth_eur_value > last_transaction.price * 1.01 ):
+        if (last_relevant_record['ema_3'].values[0]<last_relevant_record['ema_6'].values[0] or 
+            last_relevant_record['ema_3'].values[0]<last_relevant_record['ema_9'].values[0] ):
             return True
         else:
             False
