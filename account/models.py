@@ -106,6 +106,7 @@ class AccountConnector:
     account_balance:AccountBalance
     eth_reserve:float
     eur_reserve:float 
+    fee:float
     
     def _valid_transaction_volume(self, amount, price, transaction_type):
         if price is None:
