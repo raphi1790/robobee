@@ -49,12 +49,10 @@ class SimpleStrategy(Strategy):
         """
         second last candle must be bullish
         """
-        last_relevant_record = df[-2:-1]
-        predecessor_record = df[-3:-2]
+        last_relevant_records = df[-4:-1]
 
-        length_predecessor_candle = abs(predecessor_record['open'].values[0]-predecessor_record['close'].values[0])
-    
-        if (len(last_relevant_record.loc[last_relevant_record['engulfing']>0])>0):
+
+        if (len(last_relevant_records.loc[last_relevant_records['engulfing']>0])>0):
             return True
         else:
             return False
@@ -102,9 +100,11 @@ class SimpleStrategy(Strategy):
         print("last bullish engulfing pattern", max(data.loc[data['engulfing']>0].idxmax()))
         if status == 'in':
             print("in-trade")
-            if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
-                lower_bound = current_eth_eur_value
+            lower_bound = last_transaction.price/1.0025
             print("lower_bound", lower_bound)
+            # if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
+            #     lower_bound = current_eth_eur_value
+            # print("lower_bound", lower_bound)
             if SimpleStrategy._take_profit(data):
                 print("take-profit")
                 print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
