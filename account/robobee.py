@@ -19,4 +19,4 @@ if __name__ == "__main__":
     dummy_connector = DummyConnector()
     simple_strategy = SimpleStrategy()
     ema_strategy = EmaStrategy()
-    collect_honey(account_connector=dummy_connector, strategy=ema_strategy)
+    collect_honey(account_connector=dummy_connector, strategy=simple_strategy)
