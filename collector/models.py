@@ -4,6 +4,7 @@ import json
 import os
 import time
 from dotenv.main import load_dotenv
+import operator
 
 from influxdb.client import InfluxDBClient
 import pytz
@@ -83,11 +84,20 @@ class BitstampWebsocketConnector(WebsocketConnector):
                 influx_connector.write_point(first_buffer_element.to_influx(self.prefix))
                 
                 
-                
-            if len(buffer_data) > 1:
+            if len(buffer_data) == 2:
                 first_buffer_element = buffer_data[0]
                 last_buffer_element = buffer_data[len(buffer_data) -1]
                 influx_connector.write_point(first_buffer_element.to_influx(self.prefix))
+                influx_connector.write_point(last_buffer_element.to_influx(self.prefix))
+
+            if len(buffer_data) >2:
+                first_buffer_element = buffer_data[0]
+                last_buffer_element = buffer_data[len(buffer_data) -1]
+                max_element = max(buffer_data, key=operator.attrgetter('price'))
+                min_element = min(buffer_data, key=operator.attrgetter('price'))
+                influx_connector.write_point(first_buffer_element.to_influx(self.prefix))
+                influx_connector.write_point(max_element.to_influx(self.prefix))
+                influx_connector.write_point(min_element.to_influx(self.prefix))
                 influx_connector.write_point(last_buffer_element.to_influx(self.prefix))
                 
             buffer.reset_data()
@@ -113,33 +123,39 @@ class BinanceWebsocketConnector(WebsocketConnector):
     prefix:str="binance"
 
     def on_message(self, ws, message, buffer, influx_connector, aggregation_level):
-        print("im there")
         obj = json.loads(message)
-        print("message", message)
-        # if bool(obj['data']) :
-        #     price = obj['data']['price']
-        #     timestamp = obj['data']['timestamp']
-        #     utc_timestamp = datetime.fromtimestamp(int(timestamp)).astimezone(pytz.utc)
-        #     current_trade = LiveTrade(utc_timestamp, pair="ETH-EUR" , exchange="Bitstamp", price=price)
-        #     buffer.append(current_trade)
+        if bool(obj['p']) :
+            price = obj['p']
+            timestamp = obj['T']
+            utc_timestamp = datetime.fromtimestamp(timestamp / 1000.0).astimezone(pytz.utc)
+            current_trade = LiveTrade(utc_timestamp, pair="ETH-EUR" , exchange="Binance", price=price)
+            buffer.append(current_trade)
 
         
-        # time_difference_buffer = buffer.get_time_difference()
-        # if time_difference_buffer > aggregation_level:
-        #     buffer_data = buffer.get_data()
-        #     if len(buffer_data) == 1:
-        #         first_buffer_element = buffer_data[0]
-        #         influx_connector.write_point(first_buffer_element.to_influx(self.prefix))
+        time_difference_buffer = buffer.get_time_difference()
+        if time_difference_buffer > aggregation_level:
+            buffer_data = buffer.get_data()
+            if len(buffer_data) == 1:
+                first_buffer_element = buffer_data[0]
+                influx_connector.write_point(first_buffer_element.to_influx(self.prefix))
                 
-                
-                
-        #     if len(buffer_data) > 1:
-        #         first_buffer_element = buffer_data[0]
-        #         last_buffer_element = buffer_data[len(buffer_data) -1]
-        #         influx_connector.write_point(first_buffer_element.to_influx(self.prefix))
-        #         influx_connector.write_point(last_buffer_element.to_influx(self.prefix))
-                
-        #     buffer.reset_data()
+            if len(buffer_data) == 2:
+                first_buffer_element = buffer_data[0]
+                last_buffer_element = buffer_data[len(buffer_data) -1]
+                influx_connector.write_point(first_buffer_element.to_influx(self.prefix))
+                influx_connector.write_point(last_buffer_element.to_influx(self.prefix))
+
+            if len(buffer_data) >2:
+                first_buffer_element = buffer_data[0]
+                last_buffer_element = buffer_data[len(buffer_data) -1]
+                max_element = max(buffer_data, key=operator.attrgetter('price'))
+                min_element = min(buffer_data, key=operator.attrgetter('price'))
+                influx_connector.write_point(first_buffer_element.to_influx(self.prefix))
+                influx_connector.write_point(max_element.to_influx(self.prefix))
+                influx_connector.write_point(min_element.to_influx(self.prefix))
+                influx_connector.write_point(last_buffer_element.to_influx(self.prefix))
+
+            buffer.reset_data()
     
     def on_open(self, ws):
         def run(*args):
