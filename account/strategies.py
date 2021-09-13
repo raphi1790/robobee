@@ -97,7 +97,7 @@ class SimpleStrategy(Strategy):
         last_transaction = connector.get_last_transaction()
         status = SimpleStrategy._get_current_status(last_transaction)
         print("last relevant close-value", last_relevant_close_value)
-        print("last bullish engulfing pattern", max(data.loc[data['engulfing']>0].idxmax()))
+        print("last bullish engulfing pattern", data.loc[data['engulfing']>0])
         if status == 'in':
             print("in-trade")
             lower_bound = last_transaction.price/1.0025

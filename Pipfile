@@ -12,6 +12,7 @@ websocket-client = "*"
 influxdb = "*"
 python-dotenv = "*"
 jupyterlab = "*"
+python-binance = "*"
 
 [dev-packages]
 
