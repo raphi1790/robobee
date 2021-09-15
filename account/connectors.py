@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 from datetime import datetime
 import ast
 from api.api import get_current_eth_eur_value
+from binance.client import Client
 
 @dataclass
 class DummyConnector(AccountConnector):
@@ -21,8 +22,8 @@ class DummyConnector(AccountConnector):
 
     def __init__(self):
         self.update_balance()
-        self.eth_reserve = float(os.getenv('RESERVE_ETH'))
-        self.eur_reserve = float(os.getenv('RESERVE_EUR'))
+        self.eth_reserve = float(os.getenv('DUMMY_RESERVE_ETH'))
+        self.eur_reserve = float(os.getenv('DUMMY_RESERVE_EUR'))
         self.fee = float(os.getenv("DUMMY_CONNECTOR_FEE"))
     
     def get_balance(self):
@@ -101,8 +102,8 @@ class BitstampConnector(AccountConnector):
 
     def __init__(self):
         self.update_balance()
-        self.eth_reserve = float(os.getenv('RESERVE_ETH'))
-        self.eur_reserve = float(os.getenv('RESERVE_EUR'))
+        self.eth_reserve = float(os.getenv('BITSTAMP_RESERVE_ETH'))
+        self.eur_reserve = float(os.getenv('BITSTAMP_RESERVE_EUR'))
         self.fee = float(os.getenv("BITSTAMP_CONNECTOR_FEE"))
 
     @staticmethod
@@ -554,3 +555,127 @@ class BitstampConnector(AccountConnector):
     def get_last_transaction(self, **kwargs):
         transaction = super(BitstampConnector, self).get_last_transaction(connector="bitstamp", **kwargs)
         return transaction
+
+@dataclass
+class BinanceConnector(AccountConnector):
+    account_balance:AccountBalance
+
+    def _initialize_binance_client(self):
+        api_key = os.environ.get('BINANCE_API_KEY')
+        api_secret = os.environ.get('BINANCE_API_SECRET')
+        client = Client(api_key, api_secret)
+        print("client", client)
+        return client
+
+    def __init__(self):
+        self.update_balance()
+        self.eth_reserve = float(os.getenv('BINANCE_RESERVE_ETH'))
+        self.eur_reserve = float(os.getenv('BINANCE_RESERVE_EUR'))
+        self.fee = float(os.getenv("BINANCE_CONNECTOR_FEE"))
+
+    def update_balance(self):
+        try: 
+            binance_client = self._initialize_binance_client()
+            eur_available = float(binance_client.get_asset_balance(asset='EUR')['free'])
+            eth_available = float(binance_client.get_asset_balance(asset='ETH')['free'])
+            print("eth_available", eth_available)
+        except Exception as e: 
+            print("Oops!  Something went wrong with accessing the account")
+            raise e
+
+        latest_trade = get_current_eth_eur_value(connector='binance')
+        try: 
+            current_etheur_value = float(latest_trade.price)
+            print("current_etheur_value", current_etheur_value)
+        except Exception as e: 
+            print("Oops! Something went wrong with fetching the latest live_trades")
+            raise e
+
+        self.account_balance=AccountBalance(timestamp_utc=datetime.utcnow()
+            ,pair="ETH-EUR"
+            ,exchange="Binance"
+            ,eth_available=eth_available
+            ,eur_available=eur_available
+            ,balance_total=current_etheur_value*eth_available + eur_available
+        )
+        self._write_account_balance(self.account_balance, connector="binance")
+
+ 
+    
+    def _valid_transaction_volume(self, amount, price, transaction_type):
+        if price is None:
+            return False
+        eur_necessary = round(amount * price,2)
+        eth_necessary = amount
+
+
+        # print("eur_available",self.account_balance.eur_available )
+        # print("eth_available",self.account_balance.eth_available )
+        # print("eur_necessary",eur_necessary )
+        # print("eth_necessary",eth_necessary )
+
+        if(transaction_type == 'buy'):
+            return self.account_balance.eur_available > eur_necessary
+        if(transaction_type == 'sell'):
+            return self.account_balance.eth_available > eth_necessary
+        else:
+            return False
+
+    def tradeable_eth(self):
+        return self.account_balance.eth_available - self.eth_reserve
+    
+    def tradeable_eur(self):
+        return self.account_balance.eur_available - self.eur_reserve
+
+    def _write_transaction(self,transaction:Transaction, connector):
+        try:
+            influx_connector = InfluxConnector()
+            influx_connector.write_point(transaction.to_influx(connector=connector))
+        except Exception as e:
+            print(e)
+
+    def _write_account_balance(self, acount_balance:AccountBalance, connector):
+        try:
+            influx_connector = InfluxConnector()
+            print("account_balance.to_influx()", acount_balance.to_influx(connector=connector))
+            influx_connector.write_point(acount_balance.to_influx(connector=connector))
+        except Exception as e:
+            print(e)
+    
+    def get_last_transaction(self, connector, **kwargs):
+        try:
+            influx_connector = InfluxConnector()
+            client = influx_connector.get_client()
+            if 'type' in kwargs:
+                query_str = f"""SELECT * FROM {connector}_transactions WHERE transaction_type = '{kwargs['type']}' order by time desc limit 1"""
+                
+            else: 
+                query_str = f"""SELECT * FROM {connector}_transactions order by time desc limit 1"""
+            result_set = client.query(query_str)
+            result_points = list(result_set.get_points(f"{connector}_transactions"))
+            return Transaction(timestamp_utc=result_points[0]['time']
+                    , exchange=result_points[0]['exchange']
+                    , pair=result_points[0]['pair']
+                    , amount=result_points[0]['amount']
+                    , price=result_points[0]['price']
+                    , id =result_points[0]['id']
+                    , type=result_points[0]['transaction_type'] )
+        except Exception as e:
+           return Transaction(timestamp_utc=datetime.utcnow()
+                    , exchange=None
+                    , pair=None
+                    , amount=None
+                    , price=None
+                    , id =None
+                    , type=None )
+    
+
+        
+    def get_balance(self):
+        pass
+
+    def buy_eth(self,amount, price):
+        pass
+
+    def sell_eth(self,amount, price):
+        pass

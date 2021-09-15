@@ -6,7 +6,7 @@ from models import InfluxConnector, LiveTrade
 
 
 
-def get_eth_eur_values(from_dt_str='now()- 1d',to_dt_str='now()', measurement='live_trades' ):
+def get_eth_eur_values(from_dt_str='now()- 1d',to_dt_str='now()', measurement='bitstamp_live_trades' ):
     influx_connector = InfluxConnector()
     client = influx_connector.get_client()
     query_str = f"SELECT time, exchange, pair, price FROM {measurement} WHERE time >= {from_dt_str} and time <= {to_dt_str} order by time desc"
@@ -22,8 +22,8 @@ def get_eth_eur_values(from_dt_str='now()- 1d',to_dt_str='now()', measurement='l
     else:
         return None
 
-def get_current_eth_eur_value():
-    live_trades = get_eth_eur_values(from_dt_str='now()- 15m', to_dt_str='now()',measurement='live_trades')
+def get_current_eth_eur_value(connector="bitstamp"):
+    live_trades = get_eth_eur_values(from_dt_str='now()- 15m', to_dt_str='now()',measurement=f'{connector}_live_trades')
     if len(live_trades)>0:
         return live_trades[-1]
     else:

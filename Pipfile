@@ -13,6 +13,7 @@ influxdb = "*"
 python-dotenv = "*"
 jupyterlab = "*"
 python-binance = "*"
+binance-connector = "*"
 
 [dev-packages]
 
