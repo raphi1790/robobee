@@ -578,7 +578,6 @@ class BinanceConnector(AccountConnector):
             binance_client = self._initialize_binance_client()
             eur_available = float(binance_client.get_asset_balance(asset='EUR')['free'])
             eth_available = float(binance_client.get_asset_balance(asset='ETH')['free'])
-            print("eth_available", eth_available)
         except Exception as e: 
             print("Oops!  Something went wrong with accessing the account")
             raise e
@@ -672,10 +671,85 @@ class BinanceConnector(AccountConnector):
 
         
     def get_balance(self):
-        pass
+        return self.account_balance
 
     def buy_eth(self,amount, price):
-        pass
+        if not self._valid_transaction_volume(amount,price,'buy'):
+            print("not enough money on account")
+            return 
+        if amount <= 0 or amount is None or price is None:
+            return 
+        latest_trade = get_current_eth_eur_value(connector="binance")
+        try: 
+            current_etheur_value = latest_trade.price
+        except Exception as e: 
+            print("Oops!  Something went wrong with fetching the latest live_trades")
+            raise e
+        # The price might jumped up again on current_etheur_value, therefore, we want to take the value, which satisfied the rules
+        base_price = min(current_etheur_value, price) 
+
+        print("base_price", base_price)
+
+        # current_etheur_value= 1000
+        for idx in range(3):
+            try:
+                bidding_value = round(float(base_price) + idx * 0.3 ,2)
+                print("bidding_value", bidding_value)
+                order = self._buy_limit_order(amount, bidding_value)
+                print(order)
+                if not self._is_valid_limit_response(order):
+                    break
+                
+                order_id = order['orderId']
+                print("order", order)
+                print("order_id", order_id)
+                time.sleep(10)
+                status_content = self._check_order_status(order_id)
+                print("status_content", status_content['status'])
+                if status_content['status'] == 'FILLED':
+                    transaction = Transaction(timestamp_utc=datetime.fromtimestamp(status_content['time']/ 1000.0).astimezone(pytz.utc)
+                                                , exchange="Binance", pair="ETH-EUR", amount=float(status_content['executedQty'])
+                                                , price=float(status_content['price'])
+                                                ,id =str(status_content['orderId'])
+                                                ,type="buy" )
+                    self._write_transaction(transaction, connector="binance")
+                    return status_content    
+
+            except ValueError:
+                print("Oops!  Something went wrong with buying ETH")
+        return None
 
     def sell_eth(self,amount, price):
         pass
+
+    def _buy_limit_order(self, amount, price):
+        client = self._initialize_binance_client()
+        order = client.order_limit_buy(
+            symbol='ETHEUR',
+            timeInForce='FOK',
+            quantity=amount,
+            price=price)
+        return order
+    
+    def _is_valid_limit_response(self, response):
+        try:
+            if bool(response['orderId']):
+                return True
+        except:
+            return False
+
+    def _check_order_status(self, order_id):
+        client = self._initialize_binance_client()
+        all_orders = client.get_all_orders(symbol='ETHEUR')
+        current_order = [x for x in all_orders if x['orderId'] == order_id][0]
+        return current_order
+
+    def _write_transaction(self,transaction:Transaction, connector):
+        try:
+            influx_connector = InfluxConnector()
+            influx_connector.write_point(transaction.to_influx(connector=connector))
+        except Exception as e:
+            print(e)
+
+
+
