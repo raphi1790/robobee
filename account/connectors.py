@@ -641,33 +641,10 @@ class BinanceConnector(AccountConnector):
         except Exception as e:
             print(e)
     
-    def get_last_transaction(self, connector, **kwargs):
-        try:
-            influx_connector = InfluxConnector()
-            client = influx_connector.get_client()
-            if 'type' in kwargs:
-                query_str = f"""SELECT * FROM {connector}_transactions WHERE transaction_type = '{kwargs['type']}' order by time desc limit 1"""
-                
-            else: 
-                query_str = f"""SELECT * FROM {connector}_transactions order by time desc limit 1"""
-            result_set = client.query(query_str)
-            result_points = list(result_set.get_points(f"{connector}_transactions"))
-            return Transaction(timestamp_utc=result_points[0]['time']
-                    , exchange=result_points[0]['exchange']
-                    , pair=result_points[0]['pair']
-                    , amount=result_points[0]['amount']
-                    , price=result_points[0]['price']
-                    , id =result_points[0]['id']
-                    , type=result_points[0]['transaction_type'] )
-        except Exception as e:
-           return Transaction(timestamp_utc=datetime.utcnow()
-                    , exchange=None
-                    , pair=None
-                    , amount=None
-                    , price=None
-                    , id =None
-                    , type=None )
-    
+
+    def get_last_transaction(self, **kwargs):
+        transaction = super(BinanceConnector, self).get_last_transaction(connector="binance", **kwargs)
+        return transaction
 
         
     def get_balance(self):
@@ -720,7 +697,58 @@ class BinanceConnector(AccountConnector):
         return None
 
     def sell_eth(self,amount, price):
-        pass
+        if not self._valid_transaction_volume(amount,price,'sell'):
+            print("not enough eth on account")
+            return 
+        if amount <= 0 or amount is None or price is None:
+            return 
+        latest_trade = get_current_eth_eur_value(connector="binance")
+        try: 
+            current_etheur_value = latest_trade.price
+        except Exception as e: 
+            print("Oops!  Something went wrong with fetching the latest live_trades")
+            raise e
+        # The price might jumped up again on current_etheur_value, therefore, we want to take the value, which satisfied the rules
+        base_price = max(current_etheur_value, price) 
+        print("base_price", base_price)
+
+        # current_etheur_value= 1000
+        for idx in range(3):
+            try:
+                bidding_value = round(float(base_price) - idx * 0.5 ,2)
+                print("bidding_value", bidding_value)
+                order = self._sell_limit_order(amount, bidding_value)
+                print(order)
+                if not self._is_valid_limit_response(order):
+                    break
+                
+                order_id = order['orderId']
+                print("order", order)
+                print("order_id", order_id)
+                time.sleep(10)
+                status_content = self._check_order_status(order_id)
+                print("status_content", status_content['status'])
+                if status_content['status'] == 'FILLED':
+                    transaction = Transaction(timestamp_utc=datetime.fromtimestamp(status_content['time']/ 1000.0).astimezone(pytz.utc)
+                                                , exchange="Binance", pair="ETH-EUR", amount=float(status_content['executedQty'])
+                                                , price=float(status_content['price'])
+                                                ,id =str(status_content['orderId'])
+                                                ,type="sell" )
+                    self._write_transaction(transaction, connector="binance")
+                    return status_content    
+
+            except ValueError:
+                print("Oops!  Something went wrong with selling ETH")
+        return None
+
+    def _sell_limit_order(self, amount, price):
+        client = self._initialize_binance_client()
+        order = client.order_limit_sell(
+            symbol='ETHEUR',
+            timeInForce='FOK',
+            quantity=amount,
+            price=price)
+        return order
 
     def _buy_limit_order(self, amount, price):
         client = self._initialize_binance_client()

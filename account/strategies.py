@@ -129,26 +129,39 @@ class SimpleStrategy(Strategy):
 
 @dataclass
 class EmaStrategy(Strategy):
-    name:str = "3_5_8_strategy"
+    name:str = "3_6_9_strategy"
 
-    def _collect_data():
-        live_trades= api.get_eth_eur_values(from_dt_str="now()- 1d")
+    def _collect_data(self):
+        live_trades= api.get_eth_eur_values(from_dt_str="now()- 1d", measurement='binance_live_trades' )
         candlestick_5m = create_candlesticks(live_trades, interval='5Min')
         candlestick_5m['engulfing'] = talib.CDLENGULFING(candlestick_5m['open'],candlestick_5m['high'], candlestick_5m['low'], candlestick_5m['close'])
         candlestick_5m['ema_3'] = talib.EMA( candlestick_5m['close'],3)
-
         candlestick_5m['ema_6'] = talib.EMA( candlestick_5m['close'],6)
         candlestick_5m['ema_9'] = talib.EMA( candlestick_5m['close'],9)
+        candlestick_5m['sma_21'] = talib.SMA( candlestick_5m['close'],21)
+        candlestick_5m['sma_50'] = talib.SMA( candlestick_5m['close'],50)
+        candlestick_5m['sma_200'] = talib.SMA( candlestick_5m['close'],200)
         return candlestick_5m
 
 
-    def _get_current_status(last_transaction: Transaction):   
+    def _get_current_status(self, last_transaction: Transaction):   
         if last_transaction.type == 'buy':
             return 'in'
         else:
             return 'out'
+
+        
+    def _is_up_trend(self, df):
+        relevant_record = df[-2:-1]
+
+        if (relevant_record['sma_21'].values[0]>relevant_record['sma_50'].values[0] and 
+            relevant_record['sma_50'].values[0]>relevant_record['sma_200'].values[0]):
+            return True
+        else:
+            return False
+
     
-    def _bullish_trend_just_started(df):
+    def _bullish_trend_just_started(self, df):
         last_relevant_record = df[-2:-1]
         intersection_record = df[-3:-2]
 
@@ -160,21 +173,20 @@ class EmaStrategy(Strategy):
         else:
             return False
 
-    def _entry_signal(df):
-        if EmaStrategy._bullish_trend_just_started(df):
+    def _entry_signal(self, df, is_up_trend):
+        if self._bullish_trend_just_started(df) and is_up_trend:
             return True
         else: 
             return False
 
-    def _take_profit(df, last_transaction:Transaction, current_eth_eur_value):
+    def _take_profit(self,df, upper_bound, current_eth_eur_value):
         last_relevant_record = df[-2:-1]
-        if (last_relevant_record['ema_3'].values[0]<last_relevant_record['ema_6'].values[0] or 
-            last_relevant_record['ema_3'].values[0]<last_relevant_record['ema_9'].values[0] ):
+        if current_eth_eur_value > upper_bound :
             return True
         else:
             False
     
-    def _stop_loss(df, lower_bound ):
+    def _stop_loss(self,df, lower_bound ):
         last_relevant_record = df[-2:-1]
         if lower_bound > last_relevant_record['close'].values[0]:
             return True
@@ -184,28 +196,31 @@ class EmaStrategy(Strategy):
     
     def apply(self, connector: AccountConnector):
         lower_bound = float(-inf)
-        data = EmaStrategy._collect_data()
+        data = self._collect_data()
         last_relevant_record = data[-2:-1]
         last_relevant_close_value = last_relevant_record['close'].values[0]
         current_eth_eur_value = getattr(api.get_current_eth_eur_value(),'price')
         print("current eth-eur-value:", current_eth_eur_value)
         last_transaction = connector.get_last_transaction()
-        status = EmaStrategy._get_current_status(last_transaction)
+        status = self._get_current_status(last_transaction)
         print("last relevant close-value", last_relevant_close_value)
         print( data.index[-3], "ema_3:",data[-3:-2]['ema_3'].values[0],"ema_6:",data[-3:-2]['ema_6'].values[0],"ema_9:",data[-3:-2]['ema_9'].values[0])
         print( data.index[-2], "ema_3:",data[-2:-1]['ema_3'].values[0],"ema_6:",data[-2:-1]['ema_6'].values[0],"ema_9:",data[-2:-1]['ema_9'].values[0])
+        is_up_trend = self._is_up_trend()
+        print("is_up_trend", is_up_trend)
         if status == 'in':
             print("in-trade")
             lower_bound = last_transaction.price/1.0025
+            upper_bound = last_transaction.price*1.008
             print("lower_bound", lower_bound)
             # if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
             #     lower_bound = current_eth_eur_value
-            if EmaStrategy._take_profit(data, last_transaction, current_eth_eur_value):
+            if self._take_profit(data, upper_bound, current_eth_eur_value):
                 print("take-profit")
                 print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
                 tradeable_eth = connector.tradeable_eth()
                 connector.sell_eth(tradeable_eth, current_eth_eur_value)
-            elif EmaStrategy._stop_loss(data, lower_bound):
+            elif self._stop_loss(data, lower_bound):
                 print("stop-loss")
                 print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
                 tradeable_eth = connector.tradeable_eth()
@@ -214,10 +229,11 @@ class EmaStrategy(Strategy):
                 pass 
         if status == 'out':
             print("out-trade")
-            if EmaStrategy._entry_signal(data):
+            if self._entry_signal(data, is_up_trend):
                 print("enter trade")
                 eth_to_buy = calculate_eth(connector.tradeable_eur(),current_eth_eur_value)
                 connector.buy_eth(eth_to_buy, current_eth_eur_value)
         
         return data
+
         
