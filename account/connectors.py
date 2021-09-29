@@ -36,7 +36,7 @@ class DummyConnector(AccountConnector):
         return super().tradeable_eur()
 
     def update_balance(self):
-        latest_trade = get_current_eth_eur_value()
+        latest_trade = get_current_eth_eur_value(connector="binance")
         try: 
             current_etheur_value = float(latest_trade.price)
         except Exception as e: 
