@@ -103,6 +103,7 @@ class AccountBalance:
 
 @dataclass
 class AccountConnector:
+    name:str
     account_balance:AccountBalance
     eth_reserve:float
     eur_reserve:float 

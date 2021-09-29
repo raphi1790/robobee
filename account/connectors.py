@@ -17,6 +17,7 @@ from binance.client import Client
 
 @dataclass
 class DummyConnector(AccountConnector):
+    name: 'simulator'
     account_balance: AccountBalance
 
 
@@ -98,6 +99,7 @@ class DummyConnector(AccountConnector):
 
 @dataclass 
 class BitstampConnector(AccountConnector):
+    name:'bitstamp'
     account_balance:AccountBalance
 
     def __init__(self):
@@ -558,6 +560,7 @@ class BitstampConnector(AccountConnector):
 
 @dataclass
 class BinanceConnector(AccountConnector):
+    name:'binance'
     account_balance:AccountBalance
 
     def _initialize_binance_client(self):
