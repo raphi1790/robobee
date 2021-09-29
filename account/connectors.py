@@ -13,6 +13,7 @@ from urllib.parse import urlencode
 from datetime import datetime
 import ast
 from api.api import get_current_eth_eur_value
+from binance.client import Client
 
 @dataclass
 class DummyConnector(AccountConnector):
@@ -21,8 +22,8 @@ class DummyConnector(AccountConnector):
 
     def __init__(self):
         self.update_balance()
-        self.eth_reserve = float(os.getenv('RESERVE_ETH'))
-        self.eur_reserve = float(os.getenv('RESERVE_EUR'))
+        self.eth_reserve = float(os.getenv('DUMMY_RESERVE_ETH'))
+        self.eur_reserve = float(os.getenv('DUMMY_RESERVE_EUR'))
         self.fee = float(os.getenv("DUMMY_CONNECTOR_FEE"))
     
     def get_balance(self):
@@ -101,8 +102,8 @@ class BitstampConnector(AccountConnector):
 
     def __init__(self):
         self.update_balance()
-        self.eth_reserve = float(os.getenv('RESERVE_ETH'))
-        self.eur_reserve = float(os.getenv('RESERVE_EUR'))
+        self.eth_reserve = float(os.getenv('BITSTAMP_RESERVE_ETH'))
+        self.eur_reserve = float(os.getenv('BITSTAMP_RESERVE_EUR'))
         self.fee = float(os.getenv("BITSTAMP_CONNECTOR_FEE"))
 
     @staticmethod
@@ -554,3 +555,229 @@ class BitstampConnector(AccountConnector):
     def get_last_transaction(self, **kwargs):
         transaction = super(BitstampConnector, self).get_last_transaction(connector="bitstamp", **kwargs)
         return transaction
+
+@dataclass
+class BinanceConnector(AccountConnector):
+    account_balance:AccountBalance
+
+    def _initialize_binance_client(self):
+        api_key = os.environ.get('BINANCE_API_KEY')
+        api_secret = os.environ.get('BINANCE_API_SECRET')
+        client = Client(api_key, api_secret)
+        print("client", client)
+        return client
+
+    def __init__(self):
+        self.update_balance()
+        self.eth_reserve = float(os.getenv('BINANCE_RESERVE_ETH'))
+        self.eur_reserve = float(os.getenv('BINANCE_RESERVE_EUR'))
+        self.fee = float(os.getenv("BINANCE_CONNECTOR_FEE"))
+
+    def update_balance(self):
+        try: 
+            binance_client = self._initialize_binance_client()
+            eur_available = float(binance_client.get_asset_balance(asset='EUR')['free'])
+            eth_available = float(binance_client.get_asset_balance(asset='ETH')['free'])
+        except Exception as e: 
+            print("Oops!  Something went wrong with accessing the account")
+            raise e
+
+        latest_trade = get_current_eth_eur_value(connector='binance')
+        try: 
+            current_etheur_value = float(latest_trade.price)
+            print("current_etheur_value", current_etheur_value)
+        except Exception as e: 
+            print("Oops! Something went wrong with fetching the latest live_trades")
+            raise e
+
+        self.account_balance=AccountBalance(timestamp_utc=datetime.utcnow()
+            ,pair="ETH-EUR"
+            ,exchange="Binance"
+            ,eth_available=eth_available
+            ,eur_available=eur_available
+            ,balance_total=current_etheur_value*eth_available + eur_available
+        )
+        self._write_account_balance(self.account_balance, connector="binance")
+
+ 
+    
+    def _valid_transaction_volume(self, amount, price, transaction_type):
+        if price is None:
+            return False
+        eur_necessary = round(amount * price,2)
+        eth_necessary = amount
+
+
+        # print("eur_available",self.account_balance.eur_available )
+        # print("eth_available",self.account_balance.eth_available )
+        # print("eur_necessary",eur_necessary )
+        # print("eth_necessary",eth_necessary )
+
+        if(transaction_type == 'buy'):
+            return self.account_balance.eur_available > eur_necessary
+        if(transaction_type == 'sell'):
+            return self.account_balance.eth_available > eth_necessary
+        else:
+            return False
+
+    def tradeable_eth(self):
+        return self.account_balance.eth_available - self.eth_reserve
+    
+    def tradeable_eur(self):
+        return self.account_balance.eur_available - self.eur_reserve
+
+    def _write_transaction(self,transaction:Transaction, connector):
+        try:
+            influx_connector = InfluxConnector()
+            influx_connector.write_point(transaction.to_influx(connector=connector))
+        except Exception as e:
+            print(e)
+
+    def _write_account_balance(self, acount_balance:AccountBalance, connector):
+        try:
+            influx_connector = InfluxConnector()
+            print("account_balance.to_influx()", acount_balance.to_influx(connector=connector))
+            influx_connector.write_point(acount_balance.to_influx(connector=connector))
+        except Exception as e:
+            print(e)
+    
+
+    def get_last_transaction(self, **kwargs):
+        transaction = super(BinanceConnector, self).get_last_transaction(connector="binance", **kwargs)
+        return transaction
+
+        
+    def get_balance(self):
+        return self.account_balance
+
+    def buy_eth(self,amount, price):
+        if not self._valid_transaction_volume(amount,price,'buy'):
+            print("not enough money on account")
+            return 
+        if amount <= 0 or amount is None or price is None:
+            return 
+        latest_trade = get_current_eth_eur_value(connector="binance")
+        try: 
+            current_etheur_value = latest_trade.price
+        except Exception as e: 
+            print("Oops!  Something went wrong with fetching the latest live_trades")
+            raise e
+        # The price might jumped up again on current_etheur_value, therefore, we want to take the value, which satisfied the rules
+        base_price = min(current_etheur_value, price) 
+
+        print("base_price", base_price)
+
+        # current_etheur_value= 1000
+        for idx in range(3):
+            try:
+                bidding_value = round(float(base_price) + idx * 0.3 ,2)
+                print("bidding_value", bidding_value)
+                order = self._buy_limit_order(amount, bidding_value)
+                print(order)
+                if not self._is_valid_limit_response(order):
+                    break
+                
+                order_id = order['orderId']
+                print("order", order)
+                print("order_id", order_id)
+                time.sleep(10)
+                status_content = self._check_order_status(order_id)
+                print("status_content", status_content['status'])
+                if status_content['status'] == 'FILLED':
+                    transaction = Transaction(timestamp_utc=datetime.fromtimestamp(status_content['time']/ 1000.0).astimezone(pytz.utc)
+                                                , exchange="Binance", pair="ETH-EUR", amount=float(status_content['executedQty'])
+                                                , price=float(status_content['price'])
+                                                ,id =str(status_content['orderId'])
+                                                ,type="buy" )
+                    self._write_transaction(transaction, connector="binance")
+                    return status_content    
+
+            except ValueError:
+                print("Oops!  Something went wrong with buying ETH")
+        return None
+
+    def sell_eth(self,amount, price):
+        if not self._valid_transaction_volume(amount,price,'sell'):
+            print("not enough eth on account")
+            return 
+        if amount <= 0 or amount is None or price is None:
+            return 
+        latest_trade = get_current_eth_eur_value(connector="binance")
+        try: 
+            current_etheur_value = latest_trade.price
+        except Exception as e: 
+            print("Oops!  Something went wrong with fetching the latest live_trades")
+            raise e
+        # The price might jumped up again on current_etheur_value, therefore, we want to take the value, which satisfied the rules
+        base_price = max(current_etheur_value, price) 
+        print("base_price", base_price)
+
+        # current_etheur_value= 1000
+        for idx in range(3):
+            try:
+                bidding_value = round(float(base_price) - idx * 0.5 ,2)
+                print("bidding_value", bidding_value)
+                order = self._sell_limit_order(amount, bidding_value)
+                print(order)
+                if not self._is_valid_limit_response(order):
+                    break
+                
+                order_id = order['orderId']
+                print("order", order)
+                print("order_id", order_id)
+                time.sleep(10)
+                status_content = self._check_order_status(order_id)
+                print("status_content", status_content['status'])
+                if status_content['status'] == 'FILLED':
+                    transaction = Transaction(timestamp_utc=datetime.fromtimestamp(status_content['time']/ 1000.0).astimezone(pytz.utc)
+                                                , exchange="Binance", pair="ETH-EUR", amount=float(status_content['executedQty'])
+                                                , price=float(status_content['price'])
+                                                ,id =str(status_content['orderId'])
+                                                ,type="sell" )
+                    self._write_transaction(transaction, connector="binance")
+                    return status_content    
+
+            except ValueError:
+                print("Oops!  Something went wrong with selling ETH")
+        return None
+
+    def _sell_limit_order(self, amount, price):
+        client = self._initialize_binance_client()
+        order = client.order_limit_sell(
+            symbol='ETHEUR',
+            timeInForce='FOK',
+            quantity=amount,
+            price=price)
+        return order
+
+    def _buy_limit_order(self, amount, price):
+        client = self._initialize_binance_client()
+        order = client.order_limit_buy(
+            symbol='ETHEUR',
+            timeInForce='FOK',
+            quantity=amount,
+            price=price)
+        return order
+    
+    def _is_valid_limit_response(self, response):
+        try:
+            if bool(response['orderId']):
+                return True
+        except:
+            return False
+
+    def _check_order_status(self, order_id):
+        client = self._initialize_binance_client()
+        all_orders = client.get_all_orders(symbol='ETHEUR')
+        current_order = [x for x in all_orders if x['orderId'] == order_id][0]
+        return current_order
+
+    def _write_transaction(self,transaction:Transaction, connector):
+        try:
+            influx_connector = InfluxConnector()
+            influx_connector.write_point(transaction.to_influx(connector=connector))
+        except Exception as e:
+            print(e)
+
+
+
