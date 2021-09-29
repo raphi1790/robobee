@@ -17,8 +17,8 @@ from binance.client import Client
 
 @dataclass
 class DummyConnector(AccountConnector):
-    name:str ='simulator'
     account_balance: AccountBalance
+    name:str ='simulator'
 
 
     def __init__(self):
@@ -99,8 +99,8 @@ class DummyConnector(AccountConnector):
 
 @dataclass 
 class BitstampConnector(AccountConnector):
-    name:str ='bitstamp'
     account_balance:AccountBalance
+    name:str ='bitstamp'
 
     def __init__(self):
         self.update_balance()
@@ -560,8 +560,8 @@ class BitstampConnector(AccountConnector):
 
 @dataclass
 class BinanceConnector(AccountConnector):
-    name:str ='binance'
     account_balance:AccountBalance
+    name:str ='binance'
 
     def _initialize_binance_client(self):
         api_key = os.environ.get('BINANCE_API_KEY')
