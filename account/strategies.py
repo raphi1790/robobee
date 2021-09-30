@@ -206,7 +206,7 @@ class EmaStrategy(Strategy):
         print("last relevant close-value", last_relevant_close_value)
         print( data.index[-3], "ema_3:",data[-3:-2]['ema_3'].values[0],"ema_6:",data[-3:-2]['ema_6'].values[0],"ema_9:",data[-3:-2]['ema_9'].values[0])
         print( data.index[-2], "ema_3:",data[-2:-1]['ema_3'].values[0],"ema_6:",data[-2:-1]['ema_6'].values[0],"ema_9:",data[-2:-1]['ema_9'].values[0])
-        is_up_trend = self._is_up_trend()
+        is_up_trend = self._is_up_trend(data)
         print("is_up_trend", is_up_trend)
         if status == 'in':
             print("in-trade")
