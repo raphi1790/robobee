@@ -87,12 +87,12 @@ class SimpleStrategy(Strategy):
             False
 
     
-    def apply(self, connector: AccountConnector):
+    def apply(self, connector: AccountConnector, live_trades_connector_name):
         lower_bound = float(-inf)
         data = SimpleStrategy._collect_data()
         last_relevant_record = data[-2:-1]
         last_relevant_close_value = last_relevant_record['close'].values[0]
-        current_eth_eur_value = getattr(api.get_current_eth_eur_value(),'price')
+        current_eth_eur_value = getattr(api.get_current_eth_eur_value(live_trades_connector_name),'price')
         print("current eth-eur-value:", current_eth_eur_value)
         last_transaction = connector.get_last_transaction()
         status = SimpleStrategy._get_current_status(last_transaction)
@@ -194,12 +194,12 @@ class EmaStrategy(Strategy):
             False
 
     
-    def apply(self, connector: AccountConnector):
+    def apply(self, connector: AccountConnector, live_trades_connector_name):
         lower_bound = float(-inf)
         data = self._collect_data()
         last_relevant_record = data[-2:-1]
         last_relevant_close_value = last_relevant_record['close'].values[0]
-        current_eth_eur_value = getattr(api.get_current_eth_eur_value(connector=connector.name),'price')
+        current_eth_eur_value = getattr(api.get_current_eth_eur_value(connector=live_trades_connector_name),'price')
         print("current eth-eur-value:", current_eth_eur_value)
         last_transaction = connector.get_last_transaction()
         status = self._get_current_status(last_transaction)

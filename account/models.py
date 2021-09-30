@@ -31,13 +31,6 @@ class Indicator:
 
 
 
-@dataclass
-class Strategy:
-    name: str
-
-    def apply(self):
-        pass
-
 
 @dataclass
 class Transaction:
@@ -206,6 +199,13 @@ class InfluxConnector:
     def write_point(self,influx_point):
         self.client.write_points([influx_point])
 
+
+@dataclass
+class Strategy:
+    name: str
+
+    def apply(self, connector: AccountConnector, live_trades_connector_name):
+        pass
 
 
 
