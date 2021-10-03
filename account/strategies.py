@@ -4,6 +4,7 @@ from models import AccountConnector, Strategy, Transaction
 import api.api as api
 from helper import *
 import talib
+import pandas as pd
 
 
 # @dataclass
@@ -35,6 +36,7 @@ class SimpleStrategy(Strategy):
         candlestick_5m['ema_20'] = talib.EMA( candlestick_5m['close'],20)
         print("ema_10:",candlestick_5m[-2:-1]['ema_10'].values[0],"ema_20:",candlestick_5m[-2:-1]['ema_20'].values[0])
         return candlestick_5m
+
 
     def _get_trend_long():
         pass
@@ -140,8 +142,21 @@ class EmaStrategy(Strategy):
         candlestick_5m['ema_9'] = talib.EMA( candlestick_5m['close'],9)
         candlestick_5m['sma_21'] = talib.SMA( candlestick_5m['close'],21)
         candlestick_5m['sma_50'] = talib.SMA( candlestick_5m['close'],50)
-        candlestick_5m['sma_200'] = talib.SMA( candlestick_5m['close'],200)
+        candlestick_5m['sma_100'] = talib.SMA( candlestick_5m['close'],100)
         return candlestick_5m
+
+
+    def _data_validation_successful(self, candlestick_5m):
+        offset_index=70
+        tolerance=10
+        candlestick_5m['validation_time_utc'] = candlestick_5m.index - pd.DateOffset(minutes=offset_index*5)
+        latest_record=candlestick_5m[-2:-1]
+        validation_record=candlestick_5m[(-2-(offset_index-tolerance)):(-1-(offset_index-tolerance))]
+        boolean_array=validation_record.index >= latest_record['validation_time_utc']
+        if boolean_array[0]:
+            return True
+        else:
+            return False
 
 
     def _get_current_status(self, last_transaction: Transaction):   
@@ -155,7 +170,7 @@ class EmaStrategy(Strategy):
         relevant_record = df[-2:-1]
 
         if (relevant_record['sma_21'].values[0]>relevant_record['sma_50'].values[0] and 
-            relevant_record['sma_50'].values[0]>relevant_record['sma_200'].values[0]):
+            relevant_record['sma_50'].values[0]>relevant_record['sma_100'].values[0]):
             return True
         else:
             return False
@@ -208,12 +223,15 @@ class EmaStrategy(Strategy):
         print("last relevant close-value", last_relevant_close_value)
         print( data.index[-3], "ema_3:",data[-3:-2]['ema_3'].values[0],"ema_6:",data[-3:-2]['ema_6'].values[0],"ema_9:",data[-3:-2]['ema_9'].values[0])
         print( data.index[-2], "ema_3:",data[-2:-1]['ema_3'].values[0],"ema_6:",data[-2:-1]['ema_6'].values[0],"ema_9:",data[-2:-1]['ema_9'].values[0])
+        print( data.index[-2], "sma_21:",data[-2:-1]['sma_21'].values[0],"sma_50:",data[-2:-1]['sma_50'].values[0],"sma_100:",data[-2:-1]['sma_100'].values[0])
         is_up_trend = self._is_up_trend(data)
         print("is_up_trend", is_up_trend)
+        data_validation_successful = self._data_validation_successful(data)
+        print("data_validation_successful", data_validation_successful)
         if status == 'in':
             print("in-trade")
             lower_bound = last_transaction.price/1.003
-            upper_bound = last_transaction.price*1.007
+            upper_bound = last_transaction.price*1.005
             print("lower_bound", lower_bound)
             print("upper_bound", upper_bound)
             # if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
@@ -232,7 +250,7 @@ class EmaStrategy(Strategy):
                 pass 
         if status == 'out':
             print("out-trade")
-            if self._entry_signal(data, is_up_trend):
+            if self._entry_signal(data, is_up_trend) and data_validation_successful:
                 print("enter trade")
                 eth_to_buy = calculate_eth(connector.tradeable_eur(),current_eth_eur_value)
                 connector.buy_eth(eth_to_buy, current_eth_eur_value)
