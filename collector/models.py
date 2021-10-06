@@ -2,12 +2,14 @@ from dataclasses import dataclass
 from datetime import datetime
 import json
 import os
+import threading
 import time
 from dotenv.main import load_dotenv
 import operator
 
 from influxdb.client import InfluxDBClient
 import pytz
+import websocket
 try:
     import thread
 except ImportError:
@@ -55,11 +57,41 @@ class WebsocketConnector:
     url:str
     prefix:str
 
+    def connect_websocket(self, buffer, influx_connector, aggregation_level):
+        print("url", self.url)
+        ws = websocket.WebSocketApp(self.url,
+            on_open = lambda ws: self.on_open(ws),
+            on_message = lambda ws,msg: self.on_message(ws,msg,buffer, influx_connector, aggregation_level),
+            on_error = self.on_error,
+            on_close = lambda buffer, influx_connector, aggregation_level: self.on_close(buffer, influx_connector, aggregation_level),
+            on_ping=self.on_ping, 
+            on_pong=self.on_pong)
+
+        wst = threading.Thread(target=ws.run_forever())
+        wst.daemon = True
+        wst.start()
+
+
     def on_message():
         pass
     
     def on_open():
         pass
+    
+    def on_error(ws, error, args):
+        print(error)
+
+    def on_ping(wsapp, message):
+        print("Got a ping!")
+
+    def on_pong(wsapp, message):
+        print("Got a pong! No need to respond")
+
+    def on_close(self, buffer, influx_connector, aggregation_level):
+        # print('disconnected from server')
+        print ("Retry : %s" % time.ctime())
+        time.sleep(10)
+        self.connect_websocket(buffer, influx_connector, aggregation_level) # retry per 10 seconds
 
 @dataclass
 class BitstampWebsocketConnector(WebsocketConnector):
@@ -129,6 +161,7 @@ class BinanceWebsocketConnector(WebsocketConnector):
             timestamp = obj['T']
             utc_timestamp = datetime.fromtimestamp(timestamp / 1000.0).astimezone(pytz.utc)
             current_trade = LiveTrade(utc_timestamp, pair="ETH-EUR" , exchange="Binance", price=price)
+            print(current_trade)
             buffer.append(current_trade)
 
         
@@ -154,10 +187,10 @@ class BinanceWebsocketConnector(WebsocketConnector):
                 influx_connector.write_point(max_element.to_influx(self.prefix))
                 influx_connector.write_point(min_element.to_influx(self.prefix))
                 influx_connector.write_point(last_buffer_element.to_influx(self.prefix))
-
             buffer.reset_data()
     
     def on_open(self, ws):
+        print("opening...")
         def run(*args):
             # request websocket data
             websocket_request_data =  {
