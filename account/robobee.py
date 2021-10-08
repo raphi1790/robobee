@@ -1,5 +1,5 @@
 import time
-from connectors import DummyConnector
+from connectors import BinanceConnector, DummyConnector
 from models import AccountConnector, Strategy
 from strategies import SimpleStrategy, EmaStrategy
 
@@ -16,8 +16,8 @@ def collect_honey(account_connector:AccountConnector, strategy: Strategy, live_t
         
 
 if __name__ == "__main__":
-    dummy_connector = DummyConnector()
+    binance_connector = BinanceConnector()
     simple_strategy = SimpleStrategy()
     ema_strategy = EmaStrategy()
     live_trades_connector_name='binance'
-    collect_honey(account_connector=dummy_connector, strategy=ema_strategy, live_trades_connector_name=live_trades_connector_name)
+    collect_honey(account_connector=binance_connector, strategy=ema_strategy, live_trades_connector_name=live_trades_connector_name)
