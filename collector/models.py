@@ -57,13 +57,17 @@ class WebsocketConnector:
     url:str
     prefix:str
 
-    def connect_websocket(self, buffer, influx_connector, aggregation_level):
+    def connect_websocket(self):
         print("url", self.url)
+        influx_connector = InfluxConnector()
+        buffer = Buffer()
+        aggregation_level = 30
+        print("aggregation-level [s]:", aggregation_level)
         ws = websocket.WebSocketApp(self.url,
             on_open = lambda ws: self.on_open(ws),
             on_message = lambda ws,msg: self.on_message(ws,msg,buffer, influx_connector, aggregation_level),
             on_error = self.on_error,
-            on_close = lambda buffer, influx_connector, aggregation_level: self.on_close(buffer, influx_connector, aggregation_level),
+            on_close = lambda wsapp, close_status_code, close_msg: self.on_close(wsapp, close_status_code, close_msg),
             on_ping=self.on_ping, 
             on_pong=self.on_pong)
 
@@ -87,11 +91,12 @@ class WebsocketConnector:
     def on_pong(wsapp, message):
         print("Got a pong! No need to respond")
 
-    def on_close(self, buffer, influx_connector, aggregation_level):
+    def on_close(self, wsapp, close_status_code, close_msg):
+        print("close_message", close_msg )
         # print('disconnected from server')
         print ("Retry : %s" % time.ctime())
         time.sleep(10)
-        self.connect_websocket(buffer, influx_connector, aggregation_level) # retry per 10 seconds
+        self.connect_websocket() # retry per 10 seconds
 
 @dataclass
 class BitstampWebsocketConnector(WebsocketConnector):
@@ -135,18 +140,16 @@ class BitstampWebsocketConnector(WebsocketConnector):
             buffer.reset_data()
     
     def on_open(self, ws):
-        def run(*args):
-            # request websocket data
-            websocket_request_data =  {
-                "event": "bts:subscribe",
-                "data": {
-                    "channel": "live_trades_etheur"
-                }
+        print("opening...")
+         # request websocket data
+        websocket_request_data =  {
+            "event": "bts:subscribe",
+            "data": {
+                "channel": "live_trades_etheur"
             }
-            websocket_request_data_json = json.dumps(websocket_request_data)
-            ws.send(websocket_request_data_json)
-        thread.start_new_thread(run, ())
-        time.sleep(0.01)
+        }
+        websocket_request_data_json = json.dumps(websocket_request_data)
+        ws.send(websocket_request_data_json)
         print("websocket-connection established.")  
 
 @dataclass
@@ -191,9 +194,8 @@ class BinanceWebsocketConnector(WebsocketConnector):
     
     def on_open(self, ws):
         print("opening...")
-        def run(*args):
-            # request websocket data
-            websocket_request_data =  {
+        # request websocket data
+        websocket_request_data =  {
             "method": "SUBSCRIBE",
             "params":
             [
@@ -201,10 +203,8 @@ class BinanceWebsocketConnector(WebsocketConnector):
             ],
             "id": 1
             }
-            websocket_request_data_json = json.dumps(websocket_request_data)
-            ws.send(websocket_request_data_json)
-        thread.start_new_thread(run, ())
-        time.sleep(0.01)
+        websocket_request_data_json = json.dumps(websocket_request_data)
+        ws.send(websocket_request_data_json)
         print("websocket-connection established.")  
 
 
