@@ -562,7 +562,7 @@ class BinanceConnector(AccountConnector):
     def _initialize_binance_client(self):
         api_key = os.environ.get('BINANCE_API_KEY')
         api_secret = os.environ.get('BINANCE_API_SECRET')
-        client = Client(api_key, api_secret)
+        client = Client(api_key, api_secret, {"verify": False, "timeout": 20})
         print("client", client)
         return client
 
@@ -596,6 +596,8 @@ class BinanceConnector(AccountConnector):
             ,eur_available=eur_available
             ,balance_total=current_etheur_value*eth_available + eur_available
         )
+        print("eth_available", eth_available )
+        print("eur_available", eur_available )
         self._write_account_balance(self.account_balance, connector="binance")
 
  
