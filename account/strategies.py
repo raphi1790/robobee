@@ -228,32 +228,32 @@ class EmaStrategy(Strategy):
         print("is_up_trend", is_up_trend)
         data_validation_successful = self._data_validation_successful(data)
         print("data_validation_successful", data_validation_successful)
-        # if status == 'in':
-        #     print("in-trade")
-        #     lower_bound = last_transaction.price/1.003
-        #     upper_bound = last_transaction.price*1.005
-        #     print("lower_bound", lower_bound)
-        #     print("upper_bound", upper_bound)
-        #     # if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
-        #     #     lower_bound = current_eth_eur_value
-        #     if self._take_profit(data, upper_bound, current_eth_eur_value):
-        #         print("take-profit")
-        #         print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
-        #         tradeable_eth = connector.tradeable_eth()
-        #         connector.sell_eth(tradeable_eth, current_eth_eur_value)
-        #     elif self._stop_loss(data, lower_bound):
-        #         print("stop-loss")
-        #         print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
-        #         tradeable_eth = connector.tradeable_eth()
-        #         connector.sell_eth(tradeable_eth, current_eth_eur_value)
-        #     else: 
-        #         pass 
-        # if status == 'out':
-        #     print("out-trade")
-        #     if self._entry_signal(data, is_up_trend) and data_validation_successful:
-        #         print("enter trade")
-        #         eth_to_buy = calculate_eth(connector.tradeable_eur(),current_eth_eur_value)
-        #         connector.buy_eth(eth_to_buy, current_eth_eur_value)
+        if status == 'in':
+            print("in-trade")
+            lower_bound = last_transaction.price/1.003
+            upper_bound = last_transaction.price*1.005
+            print("lower_bound", lower_bound)
+            print("upper_bound", upper_bound)
+            # if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
+            #     lower_bound = current_eth_eur_value
+            if self._take_profit(data, upper_bound, current_eth_eur_value):
+                print("take-profit")
+                print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
+                tradeable_eth = connector.tradeable_eth()
+                connector.sell_eth(tradeable_eth, current_eth_eur_value)
+            elif self._stop_loss(data, lower_bound):
+                print("stop-loss")
+                print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
+                tradeable_eth = connector.tradeable_eth()
+                connector.sell_eth(tradeable_eth, current_eth_eur_value)
+            else: 
+                pass 
+        if status == 'out':
+            print("out-trade")
+            if self._entry_signal(data, is_up_trend) and data_validation_successful:
+                print("enter trade")
+                eth_to_buy = calculate_eth(connector.tradeable_eur(),current_eth_eur_value)
+                connector.buy_eth(eth_to_buy, current_eth_eur_value)
         
         return data
 
