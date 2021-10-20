@@ -568,10 +568,11 @@ class BinanceConnector(AccountConnector):
         return client
 
     def __init__(self):
-        self.update_balance()
         self.eth_reserve = float(os.getenv('BINANCE_RESERVE_ETH'))
         self.eur_reserve = float(os.getenv('BINANCE_RESERVE_EUR'))
         self.fee = float(os.getenv("BINANCE_CONNECTOR_FEE"))
+        self.update_balance()
+
 
     def update_balance(self):
         try: 
