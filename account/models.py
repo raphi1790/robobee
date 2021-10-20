@@ -79,7 +79,7 @@ class AccountBalance:
                             "time": datetime.utcnow(),
                             "fields": {
                                 "eur_available": round(float(self.eur_available),2),
-                                "eth_available": round(float(self.eth_available),2),
+                                "eth_available": float(self.eth_available)//0.000001/10000000, # round down to 7 decimal 
                                 "balance_total": round(float(self.balance_total),2)
                                 
                             }
@@ -114,9 +114,9 @@ class AccountConnector:
         # print("eth_necessary",eth_necessary )
 
         if(transaction_type == 'buy'):
-            return self.account_balance.eur_available > eur_necessary
+            return self.account_balance.eur_available >= eur_necessary
         if(transaction_type == 'sell'):
-            return self.account_balance.eth_available > eth_necessary
+            return self.account_balance.eth_available >= eth_necessary
         else:
             return False
 
