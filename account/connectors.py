@@ -600,28 +600,8 @@ class BinanceConnector(AccountConnector):
         )
         # print("eth_available", eth_available )
         # print("eur_available", eur_available )
-        print("tradeable_eur", self.tradeable_eur())
         self._write_account_balance(self.account_balance, connector="binance")
 
-    # def _valid_transaction_volume(self, amount, price, transaction_type):
-    #     if price is None:
-    #         return False
-    #     eur_necessary = round(amount * price,2)
-    #     eth_necessary = amount
-
-
-    #     if(transaction_type == 'buy'):
-    #         return self.account_balance.eur_available >= eur_necessary
-    #     if(transaction_type == 'sell'):
-    #         return self.account_balance.eth_available >= eth_necessary
-    #     else:
-    #         return False
-            
-    # def tradeable_eth(self):
-    #     return self.account_balance.eth_available - self.eth_reserve
-    
-    # def tradeable_eur(self):
-    #     return self.account_balance.eur_available - self.eur_reserve
 
     def _write_transaction(self,transaction:Transaction, connector):
         try:
