@@ -558,6 +558,9 @@ class BitstampConnector(AccountConnector):
 @dataclass
 class BinanceConnector(AccountConnector):
     account_balance:AccountBalance
+    eth_reserve: float
+    eur_reserve: float
+    fee: float
 
     def _initialize_binance_client(self):
         api_key = os.environ.get('BINANCE_API_KEY')
