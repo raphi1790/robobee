@@ -55,7 +55,7 @@ class Transaction:
                                     "time": self.timestamp_utc,
                                     "fields": {
                                         "price": round(float(self.price),2),
-                                        "amount": round(float(self.amount),2) 
+                                        "amount": float(self.amount)//0.00001/100000 
                                     }
                                 }
 
