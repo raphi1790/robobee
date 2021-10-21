@@ -55,7 +55,7 @@ class Transaction:
                                     "time": self.timestamp_utc,
                                     "fields": {
                                         "price": round(float(self.price),2),
-                                        "amount": float(self.amount)//0.0001/10000 
+                                        "amount": float(self.amount)//0.000000001/100000000 
                                     }
                                 }
 
@@ -79,7 +79,7 @@ class AccountBalance:
                             "time": datetime.utcnow(),
                             "fields": {
                                 "eur_available": round(float(self.eur_available),2),
-                                "eth_available": float(self.eth_available)//0.0001/10000, # round down to 4 decimal 
+                                "eth_available": float(self.eth_available)//0.000000001/100000000, # round down to 4 decimal 
                                 "balance_total": round(float(self.balance_total),2)
                                 
                             }
