@@ -79,7 +79,7 @@ class AccountBalance:
                             "time": datetime.utcnow(),
                             "fields": {
                                 "eur_available": round(float(self.eur_available),2),
-                                "eth_available": round(float(self.eth_available),8), # float(self.eth_available)//0.0000001/1000000, # round down to 6 decimal 
+                                "eth_available": round(float(self.eth_available),8),
                                 "balance_total": round(float(self.balance_total),2)
                                 
                             }

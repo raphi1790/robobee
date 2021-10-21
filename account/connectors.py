@@ -578,7 +578,7 @@ class BinanceConnector(AccountConnector):
         try: 
             binance_client = self._initialize_binance_client()
             eur_available = float(binance_client.get_asset_balance(asset='EUR')['free'])
-            eth_available = float(binance_client.get_asset_balance(asset='ETH')['free'])
+            eth_available = round(float(binance_client.get_asset_balance(asset='ETH')['free']),8)
         except Exception as e: 
             print("Oops!  Something went wrong with accessing the account")
             raise e
@@ -694,7 +694,6 @@ class BinanceConnector(AccountConnector):
             try:
                 bidding_value = round(float(base_price) - idx * 0.5 ,2)
                 print("bidding_value", bidding_value)
-                print("amount", amount)
                 order = self._sell_limit_order(amount, bidding_value)
                 print(order)
                 if not self._is_valid_limit_response(order):
@@ -721,10 +720,12 @@ class BinanceConnector(AccountConnector):
 
     def _sell_limit_order(self, amount, price):
         client = self._initialize_binance_client()
+        print("sell_limit_order amount", amount)
+        print("sell_limit_order amount round", amount//0.0001/10000)
         order = client.order_limit_sell(
             symbol='ETHEUR',
             timeInForce='FOK',
-            quantity=amount,
+            quantity=amount//0.0001/10000, # round down to 4 decimals
             price=price)
         return order
 

@@ -196,9 +196,10 @@ class EmaStrategy(Strategy):
 
     def _take_profit(self,df, upper_bound, current_eth_eur_value):
         last_relevant_record = df[-2:-1]
-        if (current_eth_eur_value > upper_bound and  
-        (last_relevant_record['ema_3'].values[0]< last_relevant_record['ema_6'].values[0]
-        or last_relevant_record['ema_3'].values[0] < last_relevant_record['ema_9'].values[0])): 
+        if current_eth_eur_value > upper_bound:
+        # if (current_eth_eur_value > upper_bound and  
+        # (last_relevant_record['ema_3'].values[0]< last_relevant_record['ema_6'].values[0]
+        # or last_relevant_record['ema_3'].values[0] < last_relevant_record['ema_9'].values[0])): 
             return True
         else:
             False
@@ -228,6 +229,7 @@ class EmaStrategy(Strategy):
         print("is_up_trend", is_up_trend)
         data_validation_successful = self._data_validation_successful(data)
         print("data_validation_successful", data_validation_successful)
+        status = 'in'
         if status == 'in':
             print("in-trade")
             lower_bound = last_transaction.price/1.003
