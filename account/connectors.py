@@ -694,6 +694,7 @@ class BinanceConnector(AccountConnector):
             try:
                 bidding_value = round(float(base_price) - idx * 0.5 ,2)
                 print("bidding_value", bidding_value)
+                print("amount", amount)
                 order = self._sell_limit_order(amount, bidding_value)
                 print(order)
                 if not self._is_valid_limit_response(order):
