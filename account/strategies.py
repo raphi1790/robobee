@@ -233,7 +233,8 @@ class EmaStrategy(Strategy):
         if status == 'in':
             print("in-trade")
             lower_bound = last_transaction.price/1.003
-            upper_bound = last_transaction.price*1.005
+            # upper_bound = last_transaction.price*1.005
+            upper_bound = 3600.00
             print("lower_bound", lower_bound)
             print("upper_bound", upper_bound)
             # if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
