@@ -5,6 +5,7 @@ import api.api as api
 from helper import *
 import talib
 import pandas as pd
+import numpy as np
 
 
 # @dataclass
@@ -165,12 +166,24 @@ class EmaStrategy(Strategy):
         else:
             return 'out'
 
+    def _calculate_trendline(self,data, order=1):
+        print("trendline data", data)
+        index = range(len(data))
+        coeffs = np.polyfit(index, list(data), order)
+        slope = coeffs[-2]
+        print("slope trendline", float(slope))
+        return float(slope)
         
     def _is_up_trend(self, df):
-        relevant_record = df[-2:-1]
-
-        if (relevant_record['sma_21'].values[0]>relevant_record['sma_50'].values[0] and 
-            relevant_record['sma_50'].values[0]>relevant_record['sma_100'].values[0]):
+        last_record = df[-2:-1]
+        trend_records = df[-5:-1]
+        trend_sma_21 = self._calculate_trendline(trend_records['sma_21'].values)
+        # trend_sma_50 = self._calculate_trendline(trend_records['sma_50'].values)
+        # trend_sma_100 = self._calculate_trendline(trend_records['sma_100'].values)
+        if (last_record['sma_21'].values[0]>last_record['sma_50'].values[0] and 
+            last_record['sma_50'].values[0]>last_record['sma_100'].values[0] and 
+            trend_sma_21 >= 0 
+            ):
             return True
         else:
             return False
@@ -230,8 +243,8 @@ class EmaStrategy(Strategy):
         print("data_validation_successful", data_validation_successful)
         if status == 'in':
             print("in-trade")
-            lower_bound = last_transaction.price/1.003
-            upper_bound = last_transaction.price*1.005
+            lower_bound = last_transaction.price/1.005
+            upper_bound = last_transaction.price*1.007
             print("lower_bound", lower_bound)
             print("upper_bound", upper_bound)
             # if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
