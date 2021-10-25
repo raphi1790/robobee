@@ -167,17 +167,16 @@ class EmaStrategy(Strategy):
             return 'out'
 
     def _calculate_trendline(self,data, order=1):
-        print("trendline data", data)
         index = range(len(data))
         coeffs = np.polyfit(index, list(data), order)
         slope = coeffs[-2]
-        print("slope trendline", float(slope))
         return float(slope)
         
     def _is_up_trend(self, df):
         last_record = df[-2:-1]
         trend_records = df[-5:-1]
         trend_sma_21 = self._calculate_trendline(trend_records['sma_21'].values)
+        print("current slope sma_21",  trend_sma_21)
         # trend_sma_50 = self._calculate_trendline(trend_records['sma_50'].values)
         # trend_sma_100 = self._calculate_trendline(trend_records['sma_100'].values)
         if (last_record['sma_21'].values[0]>last_record['sma_50'].values[0] and 
@@ -189,7 +188,7 @@ class EmaStrategy(Strategy):
             return False
 
     
-    def _bullish_trend_just_started(self, df):
+    def _short_term_up_trend_started(self, df):
         last_relevant_record = df[-2:-1]
         intersection_record = df[-3:-2]
 
@@ -202,16 +201,21 @@ class EmaStrategy(Strategy):
             return False
 
     def _entry_signal(self, df, is_up_trend):
-        if self._bullish_trend_just_started(df) and is_up_trend:
+        if self._short_term_up_trend_started(df) and is_up_trend:
             return True
         else: 
             return False
 
     def _take_profit(self,df, upper_bound, current_eth_eur_value):
         last_relevant_record = df[-2:-1]
+        trend_records = df[-4:-1]
+        trend_ema_3 = self._calculate_trendline(trend_records['ema_3'].values)
+        print("trend data ema_3", trend_records['ema_3'].values)
+        print("slope ema_3", trend_ema_3)
         if (current_eth_eur_value > upper_bound and  
         (last_relevant_record['ema_3'].values[0]< last_relevant_record['ema_6'].values[0]
-        or last_relevant_record['ema_3'].values[0] < last_relevant_record['ema_9'].values[0])): 
+        or last_relevant_record['ema_3'].values[0] < last_relevant_record['ema_9'].values[0])
+        or trend_ema_3 < 0 ): 
             return True
         else:
             False
@@ -243,8 +247,8 @@ class EmaStrategy(Strategy):
         print("data_validation_successful", data_validation_successful)
         if status == 'in':
             print("in-trade")
-            lower_bound = last_transaction.price/1.005
-            upper_bound = last_transaction.price*1.007
+            lower_bound = last_transaction.price/1.004
+            upper_bound = last_transaction.price*1.005
             print("lower_bound", lower_bound)
             print("upper_bound", upper_bound)
             # if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
