@@ -181,7 +181,7 @@ class EmaStrategy(Strategy):
         # trend_sma_100 = self._calculate_trendline(trend_records['sma_100'].values)
         if (last_record['sma_21'].values[0]>last_record['sma_50'].values[0] and 
             last_record['sma_50'].values[0]>last_record['sma_100'].values[0] and 
-            trend_sma_21 >= 0 
+            trend_sma_21 >= 0.1 
             ):
             return True
         else:
@@ -215,7 +215,7 @@ class EmaStrategy(Strategy):
         if (current_eth_eur_value > upper_bound and  
         (last_relevant_record['ema_3'].values[0]< last_relevant_record['ema_6'].values[0]
         or last_relevant_record['ema_3'].values[0] < last_relevant_record['ema_9'].values[0])
-        or trend_ema_3 < 0 ): 
+        or trend_ema_3 < 0.1 ): 
             return True
         else:
             False
