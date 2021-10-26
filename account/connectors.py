@@ -579,28 +579,23 @@ class BinanceConnector(AccountConnector):
             binance_client = self._initialize_binance_client()
             eur_available = float(binance_client.get_asset_balance(asset='EUR')['free'])
             eth_available = round(float(binance_client.get_asset_balance(asset='ETH')['free']),8)
-        except Exception as e: 
-            print("Oops!  Something went wrong with accessing the account")
-            raise e
-
-        latest_trade = get_current_eth_eur_value(connector='binance')
-        try: 
+            latest_trade = get_current_eth_eur_value(connector='binance')
             current_etheur_value = float(latest_trade.price)
             print("current_etheur_value", current_etheur_value)
-        except Exception as e: 
-            print("Oops! Something went wrong with fetching the latest live_trades")
-            raise e
-
-        self.account_balance=AccountBalance(timestamp_utc=datetime.utcnow()
+            self.account_balance=AccountBalance(timestamp_utc=datetime.utcnow()
             ,pair="ETH-EUR"
             ,exchange="Binance"
             ,eth_available=eth_available
             ,eur_available=eur_available
             ,balance_total=current_etheur_value*eth_available + eur_available
-        )
-        # print("eth_available", eth_available )
-        # print("eur_available", eur_available )
-        self._write_account_balance(self.account_balance, connector="binance")
+            )
+            # print("eth_available", eth_available )
+            # print("eur_available", eur_available )
+            self._write_account_balance(self.account_balance, connector="binance")
+        except Exception as e: 
+            print("Oops!  Something went wrong with updating the account")
+            print(e)
+            pass        
 
 
     def _write_transaction(self,transaction:Transaction, connector):

@@ -220,9 +220,10 @@ class EmaStrategy(Strategy):
         else:
             False
     
-    def _stop_loss(self,df, lower_bound ):
+    def _stop_loss(self,df, lower_bound, current_eth_eur_value ):
         last_relevant_record = df[-2:-1]
-        if lower_bound > last_relevant_record['close'].values[0]:
+        if (lower_bound > last_relevant_record['close'].values[0] and 
+            current_eth_eur_value < lower_bound):
             return True
         else:
             False
@@ -247,7 +248,7 @@ class EmaStrategy(Strategy):
         print("data_validation_successful", data_validation_successful)
         if status == 'in':
             print("in-trade")
-            lower_bound = last_transaction.price/1.004
+            lower_bound = last_transaction.price/1.005
             upper_bound = last_transaction.price*1.005
             print("lower_bound", lower_bound)
             print("upper_bound", upper_bound)
@@ -258,7 +259,7 @@ class EmaStrategy(Strategy):
                 print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
                 tradeable_eth = connector.tradeable_eth()
                 connector.sell_eth(tradeable_eth, current_eth_eur_value)
-            elif self._stop_loss(data, lower_bound):
+            elif self._stop_loss(data, lower_bound, current_eth_eur_value):
                 print("stop-loss")
                 print("last buying price:",last_transaction.price, ",current eth-eur-value:",current_eth_eur_value)
                 tradeable_eth = connector.tradeable_eth()
