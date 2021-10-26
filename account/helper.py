@@ -34,7 +34,7 @@ def plot_candlestick_chart(df):
 
 def calculate_eth(input_budget, current_stock_price):
     if current_stock_price is not None:
-        num_eth = round(input_budget / current_stock_price,2)
+        num_eth = round(input_budget / current_stock_price,8)
         return num_eth
     else:
         return 0

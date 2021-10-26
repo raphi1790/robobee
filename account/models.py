@@ -102,9 +102,14 @@ class AccountConnector:
     fee:float
     
     def _valid_transaction_volume(self, amount, price, transaction_type):
+        
         if price is None:
             return False
+        print("price", price)
+        print("amount", amount)
+        print("self.account_balance.eur_available", self.account_balance.eur_available)
         eur_necessary = round(amount * price,2)
+        print("eur_necessary",eur_necessary)
         eth_necessary = amount
 
 
