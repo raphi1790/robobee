@@ -108,7 +108,7 @@ class AccountConnector:
         print("price", price)
         print("amount", amount)
         print("self.account_balance.eur_available", self.account_balance.eur_available)
-        eur_necessary = round(amount * price,2)
+        eur_necessary = (amount * price)//0.01/100 # round down to 2 decimals
         print("eur_necessary",eur_necessary)
         eth_necessary = amount
 
