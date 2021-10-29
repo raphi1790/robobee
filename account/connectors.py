@@ -725,10 +725,11 @@ class BinanceConnector(AccountConnector):
 
     def _buy_limit_order(self, amount, price):
         client = self._initialize_binance_client()
+        print("buy_limit_order amount rounded", amount//0.0001/10000)
         order = client.order_limit_buy(
             symbol='ETHEUR',
             timeInForce='FOK',
-            quantity=amount,
+            quantity=amount//0.0001/10000, # round down to 4 decimals
             price=price)
         return order
     
