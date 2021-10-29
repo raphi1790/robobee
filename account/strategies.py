@@ -212,10 +212,10 @@ class EmaStrategy(Strategy):
         trend_ema_3 = self._calculate_trendline(trend_records['ema_3'].values)
         print("trend data ema_3", trend_records['ema_3'].values)
         print("slope ema_3", trend_ema_3)
-        if (current_eth_eur_value > upper_bound and  
+        if (current_eth_eur_value > upper_bound and  (
         (last_relevant_record['ema_3'].values[0]< last_relevant_record['ema_6'].values[0]
         or last_relevant_record['ema_3'].values[0] < last_relevant_record['ema_9'].values[0])
-        or trend_ema_3 < 0.1 ): 
+        or trend_ema_3 < 0.1 )): 
             return True
         else:
             False
@@ -249,7 +249,7 @@ class EmaStrategy(Strategy):
         if status == 'in':
             print("in-trade")
             lower_bound = last_transaction.price/1.005
-            upper_bound = last_transaction.price*1.005
+            upper_bound = last_transaction.price*1.004
             print("lower_bound", lower_bound)
             print("upper_bound", upper_bound)
             # if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:
