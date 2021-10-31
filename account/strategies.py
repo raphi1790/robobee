@@ -248,8 +248,8 @@ class EmaStrategy(Strategy):
         print("data_validation_successful", data_validation_successful)
         if status == 'in':
             print("in-trade")
-            lower_bound = last_transaction.price/1.005
-            upper_bound = last_transaction.price*1.004
+            lower_bound = last_transaction.price/1.004
+            upper_bound = last_transaction.price*1.003
             print("lower_bound", lower_bound)
             print("upper_bound", upper_bound)
             # if current_eth_eur_value > last_transaction.price/1.0025 and current_eth_eur_value > lower_bound:

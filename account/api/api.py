@@ -3,6 +3,7 @@ from dotenv import load_dotenv, find_dotenv
 from urllib.parse import urlencode
 from datetime import datetime
 from models import InfluxConnector, LiveTrade
+import numpy as np
 
 
 
@@ -23,9 +24,11 @@ def get_eth_eur_values(from_dt_str='now()- 1d',to_dt_str='now()', measurement='b
         return None
 
 def get_current_eth_eur_value(connector="bitstamp"):
-    live_trades = get_eth_eur_values(from_dt_str='now()- 15m', to_dt_str='now()',measurement=f'{connector}_live_trades')
+    live_trades = get_eth_eur_values(from_dt_str='now()- 3m', to_dt_str='now()',measurement=f'{connector}_live_trades')
     if len(live_trades)>0:
-        return live_trades[-1]
+        return LiveTrade(live_trades[-1].timestamp_utc, live_trades[-1].pair,
+                live_trades[-1].exchange,
+                np.mean([live_trades[idx].price for idx in range(len(live_trades))]))
     else:
         return None
 
