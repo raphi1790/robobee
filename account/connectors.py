@@ -642,7 +642,7 @@ class BinanceConnector(AccountConnector):
         # current_etheur_value= 1000
         for idx in range(3):
             try:
-                bidding_value = round(float(base_price) + idx * 0.3 ,2)
+                bidding_value = round(float(base_price) + idx * 1 ,2)
                 print("bidding_value", bidding_value)
                 order = self._buy_limit_order(amount, bidding_value)
                 print(order)
@@ -687,7 +687,7 @@ class BinanceConnector(AccountConnector):
         # current_etheur_value= 1000
         for idx in range(3):
             try:
-                bidding_value = round(float(base_price) - idx * 0.5 ,2)
+                bidding_value = round(float(base_price) - idx * 1 ,2)
                 print("bidding_value", bidding_value)
                 order = self._sell_limit_order(amount, bidding_value)
                 print(order)
