@@ -19,5 +19,6 @@ if __name__ == "__main__":
     binance_connector = BinanceConnector()
     simple_strategy = SimpleStrategy()
     ema_strategy = EmaStrategy()
+    no_loss_strategy = NoLossStrategy()
     live_trades_connector_name='binance'
-    collect_honey(account_connector=binance_connector, strategy=ema_strategy, live_trades_connector_name=live_trades_connector_name)
+    collect_honey(account_connector=binance_connector, strategy=no_loss_strategy, live_trades_connector_name=live_trades_connector_name)
