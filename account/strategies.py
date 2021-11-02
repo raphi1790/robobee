@@ -280,7 +280,7 @@ class EmaStrategy(Strategy):
 class NoLossStrategy(Strategy):
     name:str = "no_loss_strategy"
 
-    def _collect_data():
+    def _collect_data(self):
         live_trades= api.get_eth_eur_values(from_dt_str="now()- 1d")
         candlestick_5m = create_candlesticks(live_trades, interval='5Min')
         candlestick_5m['engulfing'] = talib.CDLENGULFING(candlestick_5m['open'],candlestick_5m['high'], candlestick_5m['low'], candlestick_5m['close'])
