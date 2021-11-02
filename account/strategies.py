@@ -291,6 +291,19 @@ class NoLossStrategy(Strategy):
         candlestick_5m['sma_50'] = talib.SMA( candlestick_5m['close'],50)
         candlestick_5m['sma_100'] = talib.SMA( candlestick_5m['close'],100)
         return candlestick_5m
+       
+        
+    def _data_validation_successful(self, candlestick_5m):
+        offset_index=70
+        tolerance=10
+        candlestick_5m['validation_time_utc'] = candlestick_5m.index - pd.DateOffset(minutes=offset_index*5)
+        latest_record=candlestick_5m[-2:-1]
+        validation_record=candlestick_5m[(-2-(offset_index-tolerance)):(-1-(offset_index-tolerance))]
+        boolean_array=validation_record.index >= latest_record['validation_time_utc']
+        if boolean_array[0]:
+            return True
+        else:
+            return False
 
     
     def _get_current_status(self, last_transaction: Transaction):   
