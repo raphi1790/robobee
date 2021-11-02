@@ -1,7 +1,7 @@
 import time
 from connectors import BinanceConnector, DummyConnector
 from models import AccountConnector, Strategy
-from strategies import SimpleStrategy, EmaStrategy
+from strategies import SimpleStrategy, EmaStrategy, NoLossStrategy
 
 
 def collect_honey(account_connector:AccountConnector, strategy: Strategy, live_trades_connector_name):
