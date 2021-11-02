@@ -293,7 +293,7 @@ class NoLossStrategy(Strategy):
         return candlestick_5m
 
     
-    def _get_current_status(last_transaction: Transaction):   
+    def _get_current_status(self, last_transaction: Transaction):   
         if last_transaction.type == 'buy':
             return 'in'
         else:
@@ -354,7 +354,7 @@ class NoLossStrategy(Strategy):
         else:
             False
     
-    def _stop_loss(df ):
+    def _stop_loss(self, df ):
         # no stop loss
         return False
 
