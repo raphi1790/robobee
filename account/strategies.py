@@ -291,10 +291,10 @@ class NoLossStrategy(Strategy):
         candlestick_5m['sma_50'] = talib.SMA( candlestick_5m['close'],50)
         candlestick_5m['sma_100'] = talib.SMA( candlestick_5m['close'],100)
         return candlestick_5m
-       
-        
+
+
     def _data_validation_successful(self, candlestick_5m):
-        offset_index=70
+        offset_index=90
         tolerance=10
         candlestick_5m['validation_time_utc'] = candlestick_5m.index - pd.DateOffset(minutes=offset_index*5)
         latest_record=candlestick_5m[-2:-1]
@@ -334,12 +334,26 @@ class NoLossStrategy(Strategy):
         else:
             return False
 
+
+    # not needed for the moment
+    def _short_term_up_trend_started(self, df):
+        last_relevant_record = df[-2:-1]
+        intersection_record = df[-3:-2]
+
+        if (last_relevant_record['ema_3'].values[0]>last_relevant_record['ema_6'].values[0] and 
+            last_relevant_record['ema_3'].values[0]>last_relevant_record['ema_9'].values[0] and 
+            (intersection_record['ema_3'].values[0]<intersection_record['ema_6'].values[0] or
+               intersection_record['ema_3'].values[0]<intersection_record['ema_9'].values[0] ) ):
+            return True
+        else:
+            return False
+
     def _below_higher_highs(self, df,current_eth_eur_value):
         last_relevant_record = df[-2:-1]
         close_values_1d = df['close'].values
         highest_high = max(close_values_1d)
         print("highest_high", highest_high)
-        lower_threshold = highest_high/1.008
+        lower_threshold = highest_high/1.03
         print("lower entry-threshold", lower_threshold)
         if (lower_threshold >= last_relevant_record['close'].values[0] and 
             lower_threshold >= current_eth_eur_value):
