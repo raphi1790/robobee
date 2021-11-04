@@ -353,7 +353,7 @@ class NoLossStrategy(Strategy):
         close_values_1d = df['close'].values
         highest_high = max(close_values_1d)
         print("highest_high", highest_high)
-        lower_threshold = highest_high/1.03
+        lower_threshold = highest_high/1.02
         print("lower entry-threshold", lower_threshold)
         if (lower_threshold >= last_relevant_record['close'].values[0] and 
             lower_threshold >= current_eth_eur_value):
