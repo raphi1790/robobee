@@ -319,31 +319,30 @@ class NoLossStrategy(Strategy):
         return float(slope)
     
 
-    def _is_up_trend(self, df):
+    def _is_down_trend_long(self, df):
         last_record = df[-2:-1]
         trend_records = df[-5:-1]
         trend_sma_21 = self._calculate_trendline(trend_records['sma_21'].values)
         print("current slope sma_21",  trend_sma_21)
         # trend_sma_50 = self._calculate_trendline(trend_records['sma_50'].values)
         # trend_sma_100 = self._calculate_trendline(trend_records['sma_100'].values)
-        if (last_record['sma_21'].values[0]>last_record['sma_50'].values[0] and 
-            last_record['sma_50'].values[0]>last_record['sma_100'].values[0] and 
-            trend_sma_21 >= 0.1 
+        if (last_record['sma_21'].values[0]<last_record['sma_50'].values[0] and 
+            last_record['sma_50'].values[0]<last_record['sma_100'].values[0] and 
+            trend_sma_21 < 0.1 
             ):
             return True
         else:
             return False
 
-
-    # not needed for the moment
-    def _short_term_up_trend_started(self, df):
-        last_relevant_record = df[-2:-1]
-        intersection_record = df[-3:-2]
-
-        if (last_relevant_record['ema_3'].values[0]>last_relevant_record['ema_6'].values[0] and 
-            last_relevant_record['ema_3'].values[0]>last_relevant_record['ema_9'].values[0] and 
-            (intersection_record['ema_3'].values[0]<intersection_record['ema_6'].values[0] or
-               intersection_record['ema_3'].values[0]<intersection_record['ema_9'].values[0] ) ):
+    def _is_down_trend_short(self, df):
+        last_record = df[-2:-1]
+        trend_records = df[-5:-1]
+        trend_ema_3 = self._calculate_trendline(trend_records['ema_3'].values)
+        print("current slope ema_3",  trend_ema_3)
+        if (last_record['ema_3'].values[0]<last_record['ema_6'].values[0] and 
+            last_record['ema_6'].values[0]<last_record['ema_9'].values[0] and 
+            trend_ema_3 < 0.1 
+            ):
             return True
         else:
             return False
@@ -361,8 +360,8 @@ class NoLossStrategy(Strategy):
         else:
             return False
 
-    def _entry_signal(self, df, current_eth_eur_value, is_up_trend):
-        if (self._below_higher_highs(df, current_eth_eur_value) and is_up_trend):
+    def _entry_signal(self, df, current_eth_eur_value, is_down_trend_long, is_down_trend_short):
+        if (self._below_higher_highs(df, current_eth_eur_value) and not is_down_trend_long and not is_down_trend_short ):
             return True
         else: 
             return False
@@ -389,6 +388,8 @@ class NoLossStrategy(Strategy):
     def apply(self, connector: AccountConnector, live_trades_connector_name):
         lower_bound = float(-inf)
         data = self._collect_data()
+        data_validation_successful = self._data_validation_successful(data)
+        print("data_validation_successful", data_validation_successful)
         last_relevant_record = data[-2:-1]
         last_relevant_close_value = last_relevant_record['close'].values[0]
         print("last close-value", last_relevant_close_value )
@@ -400,10 +401,10 @@ class NoLossStrategy(Strategy):
         print( data.index[-3], "ema_3:",data[-3:-2]['ema_3'].values[0],"ema_6:",data[-3:-2]['ema_6'].values[0],"ema_9:",data[-3:-2]['ema_9'].values[0])
         print( data.index[-2], "ema_3:",data[-2:-1]['ema_3'].values[0],"ema_6:",data[-2:-1]['ema_6'].values[0],"ema_9:",data[-2:-1]['ema_9'].values[0])
         print( data.index[-2], "sma_21:",data[-2:-1]['sma_21'].values[0],"sma_50:",data[-2:-1]['sma_50'].values[0],"sma_100:",data[-2:-1]['sma_100'].values[0])
-        is_up_trend = self._is_up_trend(data)
-        print("is_up_trend", is_up_trend)
-        data_validation_successful = self._data_validation_successful(data)
-        print("data_validation_successful", data_validation_successful)
+        is_down_trend_long = self._is_down_trend_long(data)
+        is_down_trend_short = self._is_down_trend_short(data)
+        print("is_down_trend_long", is_down_trend_long)
+        print("is_down_trend_short", is_down_trend_short)
         if status == 'in':
             print("in-trade")
             upper_bound = last_transaction.price*1.004
@@ -423,7 +424,7 @@ class NoLossStrategy(Strategy):
                 pass 
         if status == 'out':
             print("out-trade")
-            if self._entry_signal(data,current_eth_eur_value, is_up_trend) and data_validation_successful:
+            if self._entry_signal(data,current_eth_eur_value, is_down_trend_long, is_down_trend_short ) and data_validation_successful:
                 print("enter trade")
                 eth_to_buy = calculate_eth(connector.tradeable_eur(),current_eth_eur_value)
                 connector.buy_eth(eth_to_buy, current_eth_eur_value)
